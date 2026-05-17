@@ -8,6 +8,31 @@
 
 ---
 
+## 📅 2026-05-18 — Session 2 — Debug hooks Claude Code
+
+### 🎯 Objectif de la session
+Faire fonctionner les hooks Claude Code (SessionStart / PostToolUse / PreToolUse / Stop) configurés en session 1 mais qui ne se déclenchaient pas.
+
+### ✅ Tickets terminés
+- Aucun ticket roadmap. Session 100 % debug environnement Claude Code.
+
+### 🧠 Décisions structurantes prises
+- **Hooks Claude Code installés mais désactivés temporairement.** Bug d'encodage UTF-8 dans le canal hooks → `systemMessage` côté Windows : les emojis et caractères Unicode sont corrompus dans le pipe stdout du hook. Tentative de basculer sur pwsh 7 échouée (stub WindowsApps non résolvable par les sous-processes spawnés par Claude Code, install machine refusée par winget). Bascule en ASCII pur tentée, n'a pas non plus déclenché l'affichage. Décision finale : désactiver complètement la section `hooks`, garder le `settings.json.with-hooks` en backup local (gitignored) pour debug ultérieur. Les agents et commands continuent de fonctionner normalement.
+
+### ⚠️ Points d'attention pour les prochaines sessions
+- **Hooks à débugger fresh ou abandonner.** Pistes restantes : install pwsh 7 via MSI direct depuis github.com/PowerShell/PowerShell/releases, ou tester sur WSL Linux où l'encodage UTF-8 n'a pas ces problèmes. Si le debug s'éternise > 30 min en session 3, abandonner les hooks définitivement — le workflow manuel (lancer `/session-start` + `/review-before-commit` + `/session-end` manuellement) reste parfaitement viable.
+
+### 🚧 En cours / pas fini
+- Hooks Claude Code en pause. Config préservée dans `.claude/settings.json.with-hooks` (gitignored). `.claude/settings.json` actif ne contient que `$schema`, `permissions`, `outputStyle`.
+
+### 🔜 Prochain ticket
+- **T0.2** — Init app Next.js (`apps/web` avec App Router, Tailwind v4, page d'accueil de démo). À attaquer dès que la décision hooks est prise (debug ou abandon).
+
+### 💬 Notes libres
+Session frustrante côté hooks mais le contournement est propre : config cassée préservée en local pour debug à tête reposée, rien de cassé sur le repo distant.
+
+---
+
 ## 📅 2026-05-17 — Session 1 — Mise en place du projet
 
 ### 🎯 Objectif de la session
