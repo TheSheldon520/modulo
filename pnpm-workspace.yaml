@@ -3,3 +3,9 @@ packages:
   - "packages/*"
   - "packages/config/*"
   - "modules/*"
+
+# Build scripts allowed to run during install (pnpm >= 10 requires opt-in).
+# `@tailwindcss/oxide` is Tailwind v4's native engine and needs its build step.
+onlyBuiltDependencies:
+  - sharp
+  - "@tailwindcss/oxide"

@@ -21,6 +21,7 @@ Faire fonctionner les hooks Claude Code (SessionStart / PostToolUse / PreToolUse
 
 ### ⚠️ Points d'attention pour les prochaines sessions
 - **Hooks à débugger fresh ou abandonner.** Pistes restantes : install pwsh 7 via MSI direct depuis github.com/PowerShell/PowerShell/releases, ou tester sur WSL Linux où l'encodage UTF-8 n'a pas ces problèmes. Si le debug s'éternise > 30 min en session 3, abandonner les hooks définitivement — le workflow manuel (lancer `/session-start` + `/review-before-commit` + `/session-end` manuellement) reste parfaitement viable.
+  - → [ACTÉ Session 3] Hooks abandonnés. Workflow manuel adopté définitivement. `settings.json.with-hooks` conservé en local comme archive.
 
 ### 🚧 En cours / pas fini
 - Hooks Claude Code en pause. Config préservée dans `.claude/settings.json.with-hooks` (gitignored). `.claude/settings.json` actif ne contient que `$schema`, `permissions`, `outputStyle`.
