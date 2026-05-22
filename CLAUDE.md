@@ -49,7 +49,8 @@ Lire **ARCHITECTURE.md** et **DESIGN_SYSTEM.md** avant toute génération substa
 - Hooks : `useCamelCase.ts` (ex: `useSalesFilters.ts`)
 - Helpers / lib : `kebab-case.ts` (ex: `format-currency.ts`)
 - Routes tRPC : `kebab-case.router.ts` (ex: `deals.router.ts`)
-- Schémas Drizzle : `kebab-case.schema.ts`
+- Schémas core (transverses) : `core.ts`, `billing.ts`, `auth.ts`, etc. dans `packages/db/schema/`. Naming court, par domaine.
+- Schémas modules (par module métier) : `<module>.schema.ts` en kebab-case, dans `packages/<module>/schema/` ou équivalent. Naming explicite avec suffixe `.schema`.
 
 > **Exception** : les composants shadcn/ui dans `packages/ui/components/` suivent le naming `kebab-case.tsx` upstream (`button.tsx`, `dropdown-menu.tsx`) pour rester compatibles avec la CLI `shadcn add`. Le `PascalCase` reste la convention pour tout composant maison ailleurs dans le repo.
 
@@ -141,6 +142,8 @@ pnpm typecheck              # Vérification TS globale
 pnpm lint                   # ESLint
 pnpm test                   # Vitest
 ```
+
+> Le fichier `.env.local` (vraies valeurs) se place à la **racine du repo** — tous les packages du monorepo le lisent depuis là.
 
 ---
 

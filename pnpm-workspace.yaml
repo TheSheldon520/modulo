@@ -6,6 +6,9 @@ packages:
 
 # Build scripts allowed to run during install (pnpm >= 10 requires opt-in).
 # `@tailwindcss/oxide` is Tailwind v4's native engine and needs its build step.
+# `esbuild` is a drizzle-kit dependency; its postinstall fetches the native
+# binary used to compile `drizzle.config.ts`.
 onlyBuiltDependencies:
   - sharp
   - "@tailwindcss/oxide"
+  - esbuild
