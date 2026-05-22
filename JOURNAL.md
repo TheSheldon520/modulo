@@ -8,6 +8,43 @@
 
 ---
 
+## 📅 2026-05-22 — Session 4 — Fondations BDD — Drizzle + Neon
+
+### 🎯 Objectif de la session
+Poser la couche base de données du projet : package `@modulo/db`, schémas `core` et `billing`, client Neon, et appliquer la première migration sur Neon Postgres.
+
+### ✅ Tickets terminés
+- **T0.5** — Setup Drizzle ORM + Neon Postgres. Package `@modulo/db` créé, schéma `core.ts` (users, organizations, memberships + enum `role`) et `billing.ts` (enabled_modules), `client.ts` avec `getDb()` lazy + `@neondatabase/serverless`, `drizzle.config.ts` avec `dotenv` pour `.env.local` racine, migration initiale générée (`0000_small_black_queen.sql`) avec UUID v7 côté app, FK `ON DELETE CASCADE`, index sur `memberships.organization_id` ajouté avant commit (fix attrapé par le code-reviewer). `.env.example` commité, `.env.local` créé à la racine (gitignored), **migration appliquée sur Neon eu-west-2**, 4 tables vérifiées dans Drizzle Studio.
+
+### 🧠 Décisions structurantes prises
+- **Séparation par domaine fonctionnel** : `core.ts` (transverse) + `billing.ts` (commercial). Convention `<module>.schema.ts` réservée aux schémas par module métier (T1.X). `CLAUDE.md` étendu pour documenter la distinction.
+- **UUID v7 côté app** via lib `uuidv7` + Drizzle `$defaultFn` — PG 17 n'a pas `uuidv7()` natif. Choix : portable (pas lié à Neon), triable temporellement (meilleure localité d'index), fail-fast si insert sans ID (pas de `DEFAULT` SQL).
+- **`timestamptz` partout** (`timestamp with time zone`) — best practice SaaS B2B, évite les bugs de DST.
+- **Client BDD via `getDb()`** (fonction lazy) — évite de déclencher la connexion à l'import, compatible serverless et tests unitaires. Cache `globalThis` pour Next HMR.
+- **Driver `@neondatabase/serverless`** (WebSocket optimisé) plutôt que `pg` classique.
+- **Pooled URL** (`DATABASE_URL`) pour app runtime ; **unpooled URL** (`DATABASE_URL_UNPOOLED`) pour migrations (transactions longues).
+- **Index BDD posé dès T0.5** sur `memberships.organization_id` pour anticiper les requêtes multi-tenant (T0.7).
+- **4 divergences avec `ARCHITECTURE.md §3` acceptées** : uuid (pas text), pas de `theme` jsonb sur organizations, `updated_at` partout, `timestamptz`. Doc à mettre à jour hors scope T0.5.
+- **Better Auth (T0.6) anticipé** : `users.email` unique + non-null, `users.name` nullable, prêt pour l'adaptateur Better Auth.
+- **Discipline review confirmée** : `/review-before-commit` AVANT commit, index manquant attrapé et corrigé, migration `0000` régénérée propre (pas de `0001` parasite).
+
+### ⚠️ Points d'attention pour les prochaines sessions
+- **`ARCHITECTURE.md §3` à réconcilier** : uuid (pas text) pour PK, `timestamptz` (pas `timestamp`), `updated_at` partout, `theme` jsonb reporté à T0.9. Mise à jour à faire indépendamment des tickets.
+- **T0.6 Better Auth** : configurer l'adaptateur Drizzle, anticiper la création des tables `sessions`/`accounts`/`verification`, **ne pas dupliquer `users`**.
+- **Drizzle Studio** = outil dev BDD : `pnpm db:studio` pour explorer la BDD localement.
+- Rappels reportés de la Session 3 : infra Vitest avant T0.7 · tokens dataviz `--chart-1..5` en T1.4 · démo `sonner` à câbler dès qu'on aura une vraie mutation à notifier — probablement T0.7 (tRPC) ou T0.8 (shell) · `packages/config/tailwind-preset/index.ts` legacy à supprimer après T0.6/T0.7.
+
+### 🚧 En cours / pas fini
+Aucun chantier de code ouvert. Working tree propre après le commit T0.5 (`6bc5bd6`).
+
+### 🔜 Prochain ticket
+- **T0.6** — Setup Better Auth : adaptateur Drizzle sur le schéma core, signup/login email+password, sessions sécurisées via cookies HTTPOnly, middleware Next protégeant les routes authentifiées. Provider GitHub OAuth en bonus si pas de friction. Magic link et Personal Organization reportés (SMTP non configuré, shell multi-tenant en T0.8).
+
+### 💬 Notes libres
+Phase 0 à **50 %** (T0.1 → T0.5 sur 10 tickets). Session courte et ciblée, attaquée immédiatement après la clôture de Session 3 le même jour. La migration appliquée et vérifiée dans Drizzle Studio sur Neon eu-west-2 confirme que la chaîne complète (Drizzle TS → drizzle-kit generate → SQL → Neon) est opérationnelle.
+
+---
+
 ## 📅 2026-05-22 — Session 3 — Fondations frontend — app, tokens, shadcn
 
 ### 🎯 Objectif de la session
