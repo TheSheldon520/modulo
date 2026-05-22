@@ -60,6 +60,14 @@ Tout passe par des **CSS variables**. Ça permet :
   --danger: oklch(0.68 0.20 25);
   --info: oklch(0.70 0.15 230);
 
+  /* Pour chaque couleur sémantique, un token *-foreground garantit la
+     lisibilité du texte par-dessus (convention reprise de shadcn). À utiliser
+     systématiquement sur les boutons / badges / notifications. */
+  --success-foreground: oklch(0.15 0.01 150);
+  --warning-foreground: oklch(0.15 0.01 75);
+  --danger-foreground: oklch(0.97 0.005 25);
+  --info-foreground: oklch(0.97 0.005 230);
+
   /* === ÉLÉVATION === */
   --shadow-sm: 0 1px 2px 0 oklch(0 0 0 / 0.20);
   --shadow-md: 0 4px 12px -2px oklch(0 0 0 / 0.30);

@@ -34,6 +34,15 @@
  * `transition-duration: var(--duration-base)` rather than a generated utility.
  */
 
+/*
+ * Content source: the @modulo/ui component library lives outside any app's
+ * directory tree, so Tailwind's automatic source detection never sees it. This
+ * preset is the design-system entrypoint, so it declares where the components
+ * live — every app importing the preset inherits the scan, no per-app config.
+ * Path is resolved relative to this file (packages/config/tailwind-preset/).
+ */
+@source "../../ui/components";
+
 @theme inline {
   /* === SURFACES -> bg-surface-0, text-surface-1, ... === */
   --color-surface-0: var(--surface-0);
@@ -63,6 +72,10 @@
   --color-warning: var(--warning);
   --color-danger: var(--danger);
   --color-info: var(--info);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-info-foreground: var(--info-foreground);
 }
 
 @theme inline {

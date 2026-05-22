@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 
+import { ComponentsDemo } from "./components-demo";
+
 /**
  * Design tokens styleguide — dev only.
  *
@@ -366,6 +368,13 @@ export default function StyleguidePage() {
             </div>
           ))}
         </div>
+      </Section>
+
+      <Section
+        title="Composants"
+        description="Primitives shadcn/ui retokenisées sur le design system Modulo. Aucune couleur shadcn ne subsiste — voir packages/ui/components/README.md."
+      >
+        <ComponentsDemo />
       </Section>
     </main>
   );

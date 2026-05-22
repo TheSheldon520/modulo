@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 @import "@modulo/ui/tokens";
 @import "@modulo/tailwind-preset/theme";
 

@@ -51,6 +51,8 @@ Lire **ARCHITECTURE.md** et **DESIGN_SYSTEM.md** avant toute génération substa
 - Routes tRPC : `kebab-case.router.ts` (ex: `deals.router.ts`)
 - Schémas Drizzle : `kebab-case.schema.ts`
 
+> **Exception** : les composants shadcn/ui dans `packages/ui/components/` suivent le naming `kebab-case.tsx` upstream (`button.tsx`, `dropdown-menu.tsx`) pour rester compatibles avec la CLI `shadcn add`. Le `PascalCase` reste la convention pour tout composant maison ailleurs dans le repo.
+
 ### Variables
 - React components & types : `PascalCase`
 - Fonctions, variables : `camelCase`
