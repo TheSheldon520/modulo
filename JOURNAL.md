@@ -8,6 +8,45 @@
 
 ---
 
+## 📅 2026-05-22 — Session 3 — Fondations frontend — app, tokens, shadcn
+
+### 🎯 Objectif de la session
+Boucler le socle frontend de la Phase 0 : application Next.js opérationnelle, design system tokenisé, et librairie de composants.
+
+### ✅ Tickets terminés
+- **T0.2** — Init app Next.js (`apps/web` : Next 15.5.18, App Router, Tailwind v4 CSS-first, Geist via next/font, page d'accueil éditoriale sobre)
+- **T0.3** — Setup design tokens dans `packages/ui` (palette OKLCH complète, échelle typo 10 tailles, page `/styleguide` dev-only, preset Tailwind porté en v4 CSS-first avec `@theme inline`)
+- **T0.4** — Installation de shadcn/ui (19 composants retokenisés sur le design system Modulo, démo `/styleguide` complète, 4 tokens sémantiques `-foreground` ajoutés)
+- Hors-ticket : `docs(tailwind-preset)` — README de transmission posé entre T0.2 et T0.3
+
+### 🧠 Décisions structurantes prises
+- **Tailwind v4 CSS-first** : preset = `theme.css` avec `@theme inline` (pas de `tailwind.config.ts`), valeurs des tokens dans `@modulo/ui`, mapping dans le preset. Theming par tenant préservé même après l'intégration des 19 composants.
+- **`DESIGN_SYSTEM.md` = source de vérité unique** en cas de conflit avec un brouillon donné en chat.
+- **`suppressHydrationWarning` sur `<body>`** = solution officielle Next.js pour les attributs injectés par les extensions Chrome (pas un workaround).
+- **Convention shadcn `-foreground`** adoptée pour les couleurs sémantiques (success/warning/danger/info), documentée dans `DESIGN_SYSTEM.md`. Design system étendu avant le commit plutôt que d'accumuler de la dette.
+- **shadcn = adapter, pas bridge** : composants retokenisés manuellement vers les tokens Modulo. Mono-thème dark, `next-themes` retiré.
+- **Directive `@source` dans le preset partagé** (pas dans `globals.css`) — DRY : toute future `apps/*` hérite automatiquement de la zone de scan.
+- **Exception kebab-case** pour `packages/ui/components/` (compat CLI `shadcn add`) ; `PascalCase` reste la règle ailleurs.
+- **Discipline review** : `/review-before-commit` lancée AVANT le commit (T0.3, T0.4). Règle confirmée : une consigne donnée en chat a la même force qu'une consigne documentée — l'agent signale avant d'improviser (4 dérives détectées et corrigées sur la session).
+
+### ⚠️ Points d'attention pour les prochaines sessions
+- **Infra Vitest absente** — à mettre en place au plus tard en T0.7 (tests des procédures tRPC et middlewares multi-tenant).
+- **Tokens dataviz `--chart-1..5`** (DESIGN_SYSTEM §7) — à ajouter à `colors.css` en T1.4 (dashboard Sales Analytics).
+- **`packages/config/tailwind-preset/index.ts`** (legacy v3) — à supprimer après T0.5/T0.6 une fois la stabilité Tailwind v4 confirmée.
+- **Démo `sonner`** dans `/styleguide` — placeholder actuel, à câbler quand on aura une vraie mutation à notifier (probablement T0.6 ou T0.7).
+- **Hooks Claude Code** — définitivement abandonnés (workflow manuel suffit ; test WSL ou pwsh MSI à explorer un jour si curiosité).
+
+### 🚧 En cours / pas fini
+Aucun chantier de code ouvert. Working tree propre après le commit T0.4.
+
+### 🔜 Prochain ticket
+- **T0.5** — Setup Drizzle + Neon : schéma `core` (users, organizations, memberships, enabledModules), migrations, `db:studio`, `.env.example`.
+
+### 💬 Notes libres
+Phase 0 à 40 % (T0.1 → T0.4 sur 10 tickets). Session dense et productive. Le `code-reviewer` a attrapé un bug majeur en T0.4 (Tailwind ne scannait pas les composants → `@source` manquant) et plusieurs fixes mineurs avant chaque commit — la discipline d'audit systématique paie.
+
+---
+
 ## 📅 2026-05-18 — Session 2 — Debug hooks Claude Code
 
 ### 🎯 Objectif de la session
