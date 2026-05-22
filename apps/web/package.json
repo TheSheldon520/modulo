@@ -19,7 +19,9 @@
   },
   "devDependencies": {
     "@modulo/eslint-config": "workspace:*",
+    "@modulo/tailwind-preset": "workspace:*",
     "@modulo/tsconfig": "workspace:*",
+    "@modulo/ui": "workspace:*",
     "@next/eslint-plugin-next": "15.5.18",
     "@types/node": "22.10.5",
     "@types/react": "19.0.6",

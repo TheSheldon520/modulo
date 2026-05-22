@@ -14,7 +14,13 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="fr" className={`${GeistSans.variable} ${GeistMono.variable}`}>
-      <body className="font-sans">{children}</body>
+      {/* suppressHydrationWarning: prevent false positives from browser
+          extensions injecting attributes into <body> (e.g. BitDefender,
+          password managers, Notion clipper). Scoped to <body> only —
+          genuine hydration mismatches elsewhere remain flagged. */}
+      <body className="font-sans" suppressHydrationWarning>
+        {children}
+      </body>
     </html>
   );
 }

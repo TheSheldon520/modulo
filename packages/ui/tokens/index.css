@@ -1,0 +1,8 @@
+/*
+ * @modulo/ui — tokens entrypoint.
+ * Aggregates every design token group into a single importable stylesheet.
+ *
+ * Consumed via: @import "@modulo/ui/tokens";
+ */
+@import "./colors.css";
+@import "./typography.css";

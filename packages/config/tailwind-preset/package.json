@@ -9,10 +9,12 @@
     ".": {
       "types": "./index.ts",
       "default": "./index.ts"
-    }
+    },
+    "./theme": "./theme.css"
   },
   "files": [
-    "index.ts"
+    "index.ts",
+    "theme.css"
   ],
   "scripts": {
     "typecheck": "tsc --noEmit"

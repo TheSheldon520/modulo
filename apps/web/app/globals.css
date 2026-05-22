@@ -1,28 +1,17 @@
 @import "tailwindcss";
+@import "@modulo/ui/tokens";
+@import "@modulo/tailwind-preset/theme";
 
 /*
- * Placeholder design tokens — minimal OKLCH set for T0.2 only.
- * The full palette (surfaces, borders, text scale, accent, semantic colors,
- * elevation, radius, motion) lands in T0.3 via `packages/ui/tokens`.
+ * App-local override: the design system ships literal font-family fallback
+ * stacks, but apps/web actually loads Geist through next/font, which exposes
+ * `--font-geist-sans` / `--font-geist-mono` on <html>. Re-map the token vars to
+ * those so the optimized webfonts are used at runtime.
  */
 :root {
-  --surface-0: oklch(0.18 0.005 250);
-  --surface-1: oklch(0.21 0.005 250);
-  --text-primary: oklch(0.97 0.005 250);
-  --text-secondary: oklch(0.75 0.005 250);
-  --accent: oklch(0.72 0.18 145);
-  --border-subtle: oklch(0.28 0.005 250 / 0.6);
-}
-
-@theme inline {
-  --color-surface-0: var(--surface-0);
-  --color-surface-1: var(--surface-1);
-  --color-text-primary: var(--text-primary);
-  --color-text-secondary: var(--text-secondary);
-  --color-accent: var(--accent);
-  --color-border-subtle: var(--border-subtle);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-geist-sans);
 }
 
 html,

@@ -1,0 +1,60 @@
+/*
+ * @modulo/ui — colors.css
+ * Default theme tokens ("Modulo Dark"). Source of truth: docs/DESIGN_SYSTEM.md §1.
+ *
+ * These are raw token VALUES only. The mapping to Tailwind utilities lives in
+ * `@modulo/tailwind-preset/theme` (`@theme` block). Multi-tenant theming
+ * rewrites a subset of these vars (--accent & co.) at runtime.
+ *
+ * Colors are expressed in OKLCH exclusively — perceptually uniform, which keeps
+ * lightness stable when a tenant changes the brand hue.
+ */
+:root {
+  /* === SURFACES (hierarchical background) === */
+  --surface-0: oklch(0.18 0.005 250); /* App background */
+  --surface-1: oklch(0.21 0.005 250); /* Cards, sidebar */
+  --surface-2: oklch(0.24 0.006 250); /* Elevated cards, popovers */
+  --surface-3: oklch(0.28 0.007 250); /* Hover states */
+
+  /* === BORDERS === */
+  --border-subtle: oklch(0.28 0.005 250 / 0.6);
+  --border-default: oklch(0.35 0.006 250 / 0.8);
+  --border-strong: oklch(0.45 0.008 250);
+
+  /* === TEXT === */
+  --text-primary: oklch(0.97 0.005 250);
+  --text-secondary: oklch(0.75 0.005 250);
+  --text-tertiary: oklch(0.55 0.005 250);
+  --text-disabled: oklch(0.4 0.005 250);
+
+  /* === ACCENT (brand color, customizable per tenant) === */
+  --accent: oklch(0.72 0.18 145); /* Electric green by default */
+  --accent-hover: oklch(0.78 0.18 145);
+  --accent-foreground: oklch(0.15 0.01 145);
+  --accent-muted: oklch(0.72 0.18 145 / 0.12);
+
+  /* === SEMANTIC === */
+  --success: oklch(0.72 0.15 150);
+  --warning: oklch(0.8 0.15 75);
+  --danger: oklch(0.68 0.2 25);
+  --info: oklch(0.7 0.15 230);
+
+  /* === ELEVATION === */
+  --shadow-sm: 0 1px 2px 0 oklch(0 0 0 / 0.2);
+  --shadow-md: 0 4px 12px -2px oklch(0 0 0 / 0.3);
+  --shadow-lg: 0 12px 32px -8px oklch(0 0 0 / 0.4);
+  --shadow-glow: 0 0 24px -4px var(--accent);
+
+  /* === RADIUS === */
+  --radius-sm: 0.375rem; /* 6px - inputs, badges */
+  --radius-md: 0.5rem; /* 8px - buttons, small cards */
+  --radius-lg: 0.75rem; /* 12px - main cards */
+  --radius-xl: 1rem; /* 16px - modals, panels */
+
+  /* === ANIMATION === */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 360ms;
+}

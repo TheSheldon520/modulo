@@ -1,0 +1,106 @@
+/*
+ * @modulo/tailwind-preset — theme.css
+ *
+ * Tailwind v4 CSS-first preset. Maps the raw design tokens from
+ * `@modulo/ui/tokens` to Tailwind utilities via `@theme`.
+ *
+ * Import order (in apps/web/app/globals.css):
+ *   @import "tailwindcss";
+ *   @import "@modulo/ui/tokens";        -> defines the raw --token VALUES
+ *   @import "@modulo/tailwind-preset/theme";  -> this file, the MAPPING
+ *
+ * --- Why `@theme inline` everywhere ---
+ *
+ * Every mapping here points a Tailwind theme key at a `var(--token)` whose VALUE
+ * is owned by `@modulo/ui/tokens`. `inline` is required for two reasons:
+ *
+ *  1. Colors: utilities must compile to `var(--token)` (not the resolved value)
+ *     so multi-tenant theming, which rewrites --accent / --surface-* & co. at
+ *     runtime, keeps utilities live.
+ *  2. Everything else: a non-inline `@theme` re-emits the variable into :root
+ *     (e.g. `--text-base: ...`). Since several token keys collide by name with
+ *     the keys defined in @modulo/ui/tokens (--text-base, --radius-md, ...), a
+ *     non-inline block would produce a self-referential `--text-base:
+ *     var(--text-base)`. `inline` skips that re-emission and inlines the
+ *     reference straight into the generated utilities — which is exactly what
+ *     we want, and mirrors the T0.2 placeholder approach.
+ *
+ * Naming note: color keys keep the `--color-text-primary` / `--color-surface-0`
+ * / `--color-border-subtle` shape established by the T0.2 placeholder, so
+ * existing utilities (e.g. `text-text-primary`) keep resolving unchanged.
+ *
+ * `--duration-*` has no standard `@theme` namespace in Tailwind v4, so durations
+ * stay as raw CSS variables (defined in @modulo/ui/tokens) — consume them via
+ * `transition-duration: var(--duration-base)` rather than a generated utility.
+ */
+
+@theme inline {
+  /* === SURFACES -> bg-surface-0, text-surface-1, ... === */
+  --color-surface-0: var(--surface-0);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+
+  /* === BORDERS -> border-border-subtle, ... === */
+  --color-border-subtle: var(--border-subtle);
+  --color-border-default: var(--border-default);
+  --color-border-strong: var(--border-strong);
+
+  /* === TEXT -> text-text-primary, ... === */
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-text-disabled: var(--text-disabled);
+
+  /* === ACCENT -> bg-accent, text-accent-foreground, ... === */
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-muted: var(--accent-muted);
+
+  /* === SEMANTIC -> text-success, bg-danger, ... === */
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+}
+
+@theme inline {
+  /* === TYPE SCALE -> text-2xs ... text-4xl === */
+  --text-2xs: var(--text-2xs);
+  --text-xs: var(--text-xs);
+  --text-sm: var(--text-sm);
+  --text-base: var(--text-base);
+  --text-md: var(--text-md);
+  --text-lg: var(--text-lg);
+  --text-xl: var(--text-xl);
+  --text-2xl: var(--text-2xl);
+  --text-3xl: var(--text-3xl);
+  --text-4xl: var(--text-4xl);
+
+  /* === LETTER-SPACING -> tracking-tight | tracking-normal | tracking-wide === */
+  --tracking-tight: var(--tracking-tight);
+  --tracking-normal: var(--tracking-normal);
+  --tracking-wide: var(--tracking-wide);
+
+  /* === FONTS -> font-sans | font-mono | font-display === */
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-display: var(--font-display);
+
+  /* === RADIUS -> rounded-sm | rounded-md | rounded-lg | rounded-xl === */
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+
+  /* === SHADOWS -> shadow-sm | shadow-md | shadow-lg | shadow-glow === */
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-glow: var(--shadow-glow);
+
+  /* === EASINGS -> ease-out | ease-in-out === */
+  --ease-out: var(--ease-out);
+  --ease-in-out: var(--ease-in-out);
+}

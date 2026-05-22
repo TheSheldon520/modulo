@@ -1,0 +1,35 @@
+/*
+ * @modulo/ui — typography.css
+ * Type scale, letter-spacing presets and font stacks.
+ * Source of truth: docs/DESIGN_SYSTEM.md §3.
+ *
+ * Rule: 14px (`--text-base`) is the default body size, not 16px — it reads as
+ * "pro software" rather than "consumer website".
+ *
+ * Note: font stacks are literal fallback chains. This package has no knowledge
+ * of next/font, so it never references `--font-geist-*`. The app re-maps
+ * `--font-sans` / `--font-mono` to the Geist variables in its own globals.css.
+ */
+:root {
+  /* === TYPE SCALE === */
+  --text-2xs: 0.6875rem; /* 11px - caps labels, meta */
+  --text-xs: 0.75rem; /* 12px - helpers, captions */
+  --text-sm: 0.8125rem; /* 13px - dense UI (sidebar, tables) */
+  --text-base: 0.875rem; /* 14px - default body */
+  --text-md: 0.9375rem; /* 15px - comfortable body */
+  --text-lg: 1.0625rem; /* 17px - subtitles */
+  --text-xl: 1.25rem; /* 20px - section titles */
+  --text-2xl: 1.5rem; /* 24px - page titles */
+  --text-3xl: 1.875rem; /* 30px - hero, marketing */
+  --text-4xl: 2.25rem; /* 36px - hero marketing */
+
+  /* === LETTER-SPACING === */
+  --tracking-tight: -0.02em; /* titles */
+  --tracking-normal: 0em; /* body */
+  --tracking-wide: 0.05em; /* caps, labels */
+
+  /* === FONT STACKS === */
+  --font-sans: "Geist", "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "Geist Mono", "JetBrains Mono", ui-monospace, monospace;
+  --font-display: "Geist", sans-serif;
+}
