@@ -1,5 +1,5 @@
 // packages/db/schema/core.ts
-import { index, pgEnum, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { boolean, index, pgEnum, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { uuidv7 } from "uuidv7";
 
 /**
@@ -13,7 +13,13 @@ export const users = pgTable("users", {
     .$defaultFn(() => uuidv7())
     .primaryKey(),
   email: text("email").notNull().unique(),
+  // `name` stays nullable: OAuth providers may not return one
+  // (GitHub `login` is used as a fallback in app code).
   name: text("name"),
+  // Better Auth requires these two columns on the user model.
+  // Email verification is wired but not enabled in T0.6 — defaults to false.
+  emailVerified: boolean("email_verified").notNull().default(false),
+  image: text("image"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()

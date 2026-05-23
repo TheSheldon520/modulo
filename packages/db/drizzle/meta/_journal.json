@@ -8,6 +8,13 @@
       "when": 1779484954706,
       "tag": "0000_small_black_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1779503531122,
+      "tag": "0001_youthful_shatterstar",
+      "breakpoints": true
     }
   ]
 }

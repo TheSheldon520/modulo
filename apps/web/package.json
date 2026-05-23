@@ -12,12 +12,14 @@
     "clean": "rm -rf .next .turbo"
   },
   "dependencies": {
+    "@modulo/auth": "workspace:*",
     "@modulo/ui": "workspace:*",
     "geist": "1.7.1",
     "lucide-react": "1.16.0",
     "next": "15.5.18",
     "react": "19.0.6",
-    "react-dom": "19.0.6"
+    "react-dom": "19.0.6",
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@modulo/eslint-config": "workspace:*",
