@@ -8,6 +8,7 @@
 // name) but every interactive signup must provide one.
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { z } from "zod";
 
@@ -25,6 +26,7 @@ const signupSchema = z.object({
 });
 
 export default function SignupPage() {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -52,7 +54,10 @@ export default function SignupPage() {
 
     if (authError) {
       setError(authError.message ?? "Sign up failed");
+      return;
     }
+
+    router.push("/dashboard");
   }
 
   async function handleOAuth(provider: "github" | "google") {
@@ -120,7 +125,10 @@ export default function SignupPage() {
                 type="text"
                 autoComplete="name"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  if (error) setError(null);
+                }}
                 disabled={loading}
               />
             </div>
@@ -133,7 +141,10 @@ export default function SignupPage() {
                 type="email"
                 autoComplete="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (error) setError(null);
+                }}
                 disabled={loading}
               />
             </div>
@@ -146,7 +157,10 @@ export default function SignupPage() {
                 type="password"
                 autoComplete="new-password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (error) setError(null);
+                }}
                 disabled={loading}
               />
             </div>

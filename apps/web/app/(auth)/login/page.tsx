@@ -7,6 +7,7 @@
 // done with Zod (single source of truth for form schemas — CLAUDE.md §TS).
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { z } from "zod";
 
@@ -23,6 +24,7 @@ const loginSchema = z.object({
 });
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +50,10 @@ export default function LoginPage() {
 
     if (authError) {
       setError(authError.message ?? "Sign in failed");
+      return;
     }
+
+    router.push("/dashboard");
   }
 
   async function handleOAuth(provider: "github" | "google") {
@@ -116,7 +121,10 @@ export default function LoginPage() {
                 type="email"
                 autoComplete="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (error) setError(null);
+                }}
                 disabled={loading}
               />
             </div>
@@ -129,7 +137,10 @@ export default function LoginPage() {
                 type="password"
                 autoComplete="current-password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (error) setError(null);
+                }}
                 disabled={loading}
               />
             </div>
