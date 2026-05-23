@@ -8,7 +8,11 @@ packages:
 # `@tailwindcss/oxide` is Tailwind v4's native engine and needs its build step.
 # `esbuild` is a drizzle-kit dependency; its postinstall fetches the native
 # binary used to compile `drizzle.config.ts`.
+# `@parcel/watcher` and `@swc/core` are transitive deps of next-intl that
+# fetch platform-specific native binaries.
 onlyBuiltDependencies:
   - sharp
   - "@tailwindcss/oxide"
   - esbuild
+  - "@parcel/watcher"
+  - "@swc/core"

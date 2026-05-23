@@ -5,10 +5,12 @@
 // Sign-up page. Client component for the same reasons as /login. Zod is the
 // single source of truth for validation; `name` is enforced client-side
 // because `users.name` is nullable in DB (OAuth providers may not return a
-// name) but every interactive signup must provide one.
+// name) but every interactive signup must provide one. The schema lives
+// inside the component so error messages stay localized via next-intl.
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
 import { z } from "zod";
 
@@ -19,13 +21,8 @@ import { Input } from "@modulo/ui/components/input";
 
 import { GithubLogo, GoogleLogo } from "../brand-logos";
 
-const signupSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  email: z.string().email("Enter a valid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-});
-
 export default function SignupPage() {
+  const t = useTranslations("auth.signup");
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -33,13 +30,20 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Defined inside the component so Zod error messages stay localized.
+  const signupSchema = z.object({
+    name: z.string().min(1, t("errors.nameRequired")),
+    email: z.string().email(t("errors.invalidEmail")),
+    password: z.string().min(8, t("errors.passwordTooShort")),
+  });
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
 
     const parsed = signupSchema.safeParse({ name, email, password });
     if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? "Invalid form");
+      setError(parsed.error.issues[0]?.message ?? t("errors.signUpFailed"));
       return;
     }
 
@@ -53,7 +57,9 @@ export default function SignupPage() {
     setLoading(false);
 
     if (authError) {
-      setError(authError.message ?? "Sign up failed");
+      // Better Auth error messages are still upstream English (mapping to
+      // localized strings is tracked for T1.X).
+      setError(authError.message ?? t("errors.signUpFailed"));
       return;
     }
 
@@ -69,7 +75,7 @@ export default function SignupPage() {
     });
     if (authError) {
       setLoading(false);
-      setError(authError.message ?? "OAuth sign in failed");
+      setError(authError.message ?? t("errors.oauthFailed"));
     }
   }
 
@@ -82,7 +88,7 @@ export default function SignupPage() {
         <div className="my-6 h-px w-10 bg-border-subtle" />
 
         <Card className="w-full p-8">
-          <h2 className="text-xl text-text-primary">Create your account</h2>
+          <h2 className="text-xl text-text-primary">{t("title")}</h2>
 
           <div className="mt-6 flex flex-col gap-3">
             <Button
@@ -93,7 +99,7 @@ export default function SignupPage() {
               disabled={loading}
             >
               <GithubLogo className="size-4" />
-              Continue with GitHub
+              {t("continueWithGithub")}
             </Button>
             <Button
               type="button"
@@ -103,14 +109,14 @@ export default function SignupPage() {
               disabled={loading}
             >
               <GoogleLogo className="size-4" />
-              Continue with Google
+              {t("continueWithGoogle")}
             </Button>
           </div>
 
           <div className="my-6 flex items-center gap-4">
             <div className="h-px flex-1 border-t border-border-subtle" />
             <span className="text-2xs uppercase tracking-wide text-text-tertiary">
-              or continue with email
+              {t("orWithEmail")}
             </span>
             <div className="h-px flex-1 border-t border-border-subtle" />
           </div>
@@ -118,7 +124,7 @@ export default function SignupPage() {
           <form onSubmit={(e) => void handleSubmit(e)} className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
               <label htmlFor="name" className="text-sm text-text-secondary">
-                Name
+                {t("nameLabel")}
               </label>
               <Input
                 id="name"
@@ -134,7 +140,7 @@ export default function SignupPage() {
             </div>
             <div className="flex flex-col gap-2">
               <label htmlFor="email" className="text-sm text-text-secondary">
-                Email
+                {t("emailLabel")}
               </label>
               <Input
                 id="email"
@@ -150,7 +156,7 @@ export default function SignupPage() {
             </div>
             <div className="flex flex-col gap-2">
               <label htmlFor="password" className="text-sm text-text-secondary">
-                Password
+                {t("passwordLabel")}
               </label>
               <Input
                 id="password"
@@ -168,15 +174,15 @@ export default function SignupPage() {
             {error ? <p className="text-sm text-danger">{error}</p> : null}
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Creating account..." : "Create account"}
+              {loading ? t("submitLoading") : t("submit")}
             </Button>
           </form>
         </Card>
 
         <p className="mt-6 text-sm text-text-tertiary">
-          Already have an account?{" "}
+          {t("haveAccount")}{" "}
           <Link href="/login" className="text-accent">
-            Sign in
+            {t("signIn")}
           </Link>
         </p>
       </div>

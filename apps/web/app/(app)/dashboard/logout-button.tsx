@@ -7,12 +7,14 @@
 // to ship to the client.
 
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { authClient } from "@modulo/auth/client";
 import { Button } from "@modulo/ui/components/button";
 
 export function LogoutButton() {
+  const t = useTranslations("dashboard");
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -32,7 +34,7 @@ export function LogoutButton() {
       onClick={() => void handleLogout()}
       disabled={loading}
     >
-      {loading ? "Signing out..." : "Sign out"}
+      {loading ? t("logoutLoading") : t("logout")}
     </Button>
   );
 }

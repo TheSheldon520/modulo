@@ -1,0 +1,53 @@
+{
+  "home": {
+    "title": "Modulo",
+    "tagline": "The toolkit that grows around your business",
+    "footer": "Phase 0 · Foundation"
+  },
+  "auth": {
+    "login": {
+      "title": "Sign in to Modulo",
+      "continueWithGithub": "Continue with GitHub",
+      "continueWithGoogle": "Continue with Google",
+      "orWithEmail": "or continue with email",
+      "emailLabel": "Email",
+      "passwordLabel": "Password",
+      "submit": "Sign in",
+      "submitLoading": "Signing in…",
+      "noAccount": "Don't have an account?",
+      "createOne": "Create one",
+      "errors": {
+        "invalidEmail": "Enter a valid email address",
+        "passwordRequired": "Password is required",
+        "signInFailed": "Sign in failed",
+        "oauthFailed": "OAuth sign in failed"
+      }
+    },
+    "signup": {
+      "title": "Create your account",
+      "continueWithGithub": "Continue with GitHub",
+      "continueWithGoogle": "Continue with Google",
+      "orWithEmail": "or continue with email",
+      "nameLabel": "Name",
+      "emailLabel": "Email",
+      "passwordLabel": "Password",
+      "submit": "Create account",
+      "submitLoading": "Creating account…",
+      "haveAccount": "Already have an account?",
+      "signIn": "Sign in",
+      "errors": {
+        "nameRequired": "Name is required",
+        "invalidEmail": "Enter a valid email address",
+        "passwordTooShort": "Password must be at least 8 characters",
+        "signUpFailed": "Sign up failed",
+        "oauthFailed": "OAuth sign in failed"
+      }
+    }
+  },
+  "dashboard": {
+    "greeting": "Hello {email}",
+    "connected": "You're signed in",
+    "logout": "Sign out",
+    "logoutLoading": "Signing out…"
+  }
+}

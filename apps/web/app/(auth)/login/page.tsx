@@ -4,10 +4,13 @@
 //
 // Sign-in page. Client component because the form holds local state (fields,
 // loading, error) and calls the Better Auth client directly. Validation is
-// done with Zod (single source of truth for form schemas — CLAUDE.md §TS).
+// done with Zod (single source of truth for form schemas — CLAUDE.md §TS),
+// and the schema lives inside the component so error messages can use `t()`
+// from next-intl.
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
 import { z } from "zod";
 
@@ -18,17 +21,19 @@ import { Input } from "@modulo/ui/components/input";
 
 import { GithubLogo, GoogleLogo } from "../brand-logos";
 
-const loginSchema = z.object({
-  email: z.string().email("Enter a valid email address"),
-  password: z.string().min(1, "Password is required"),
-});
-
 export default function LoginPage() {
+  const t = useTranslations("auth.login");
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Defined inside the component so Zod error messages stay localized.
+  const loginSchema = z.object({
+    email: z.string().email(t("errors.invalidEmail")),
+    password: z.string().min(1, t("errors.passwordRequired")),
+  });
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -36,7 +41,7 @@ export default function LoginPage() {
 
     const parsed = loginSchema.safeParse({ email, password });
     if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? "Invalid form");
+      setError(parsed.error.issues[0]?.message ?? t("errors.signInFailed"));
       return;
     }
 
@@ -49,7 +54,9 @@ export default function LoginPage() {
     setLoading(false);
 
     if (authError) {
-      setError(authError.message ?? "Sign in failed");
+      // Better Auth error messages are still upstream English (mapping to
+      // localized strings is tracked for T1.X).
+      setError(authError.message ?? t("errors.signInFailed"));
       return;
     }
 
@@ -65,7 +72,7 @@ export default function LoginPage() {
     });
     if (authError) {
       setLoading(false);
-      setError(authError.message ?? "OAuth sign in failed");
+      setError(authError.message ?? t("errors.oauthFailed"));
     }
   }
 
@@ -78,7 +85,7 @@ export default function LoginPage() {
         <div className="my-6 h-px w-10 bg-border-subtle" />
 
         <Card className="w-full p-8">
-          <h2 className="text-xl text-text-primary">Sign in to Modulo</h2>
+          <h2 className="text-xl text-text-primary">{t("title")}</h2>
 
           <div className="mt-6 flex flex-col gap-3">
             <Button
@@ -89,7 +96,7 @@ export default function LoginPage() {
               disabled={loading}
             >
               <GithubLogo className="size-4" />
-              Continue with GitHub
+              {t("continueWithGithub")}
             </Button>
             <Button
               type="button"
@@ -99,14 +106,14 @@ export default function LoginPage() {
               disabled={loading}
             >
               <GoogleLogo className="size-4" />
-              Continue with Google
+              {t("continueWithGoogle")}
             </Button>
           </div>
 
           <div className="my-6 flex items-center gap-4">
             <div className="h-px flex-1 border-t border-border-subtle" />
             <span className="text-2xs uppercase tracking-wide text-text-tertiary">
-              or continue with email
+              {t("orWithEmail")}
             </span>
             <div className="h-px flex-1 border-t border-border-subtle" />
           </div>
@@ -114,7 +121,7 @@ export default function LoginPage() {
           <form onSubmit={(e) => void handleSubmit(e)} className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
               <label htmlFor="email" className="text-sm text-text-secondary">
-                Email
+                {t("emailLabel")}
               </label>
               <Input
                 id="email"
@@ -130,7 +137,7 @@ export default function LoginPage() {
             </div>
             <div className="flex flex-col gap-2">
               <label htmlFor="password" className="text-sm text-text-secondary">
-                Password
+                {t("passwordLabel")}
               </label>
               <Input
                 id="password"
@@ -148,15 +155,15 @@ export default function LoginPage() {
             {error ? <p className="text-sm text-danger">{error}</p> : null}
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Signing in..." : "Sign in"}
+              {loading ? t("submitLoading") : t("submit")}
             </Button>
           </form>
         </Card>
 
         <p className="mt-6 text-sm text-text-tertiary">
-          Don&rsquo;t have an account?{" "}
+          {t("noAccount")}{" "}
           <Link href="/signup" className="text-accent">
-            Create one
+            {t("createOne")}
           </Link>
         </p>
       </div>
