@@ -17,13 +17,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { getDb } from "@modulo/db/client";
 import * as schema from "@modulo/db/schema";
 
-function requireEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`${name} is not set. Add it to the repo-root \`.env.local\`.`);
-  }
-  return value;
-}
+import { requireEnv } from "./env";
 
 export const auth = betterAuth({
   database: drizzleAdapter(getDb(), {

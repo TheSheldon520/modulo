@@ -4,6 +4,8 @@ import { GeistSans } from "geist/font/sans";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 
+import { TRPCProvider } from "@/lib/trpc/provider";
+
 import "./globals.css";
 
 // The current `description` is already in French and matches the only locale
@@ -28,7 +30,7 @@ export default async function RootLayout({
           genuine hydration mismatches elsewhere remain flagged. */}
       <body className="font-sans" suppressHydrationWarning>
         <NextIntlClientProvider locale={locale} messages={messages}>
-          {children}
+          <TRPCProvider>{children}</TRPCProvider>
         </NextIntlClientProvider>
       </body>
     </html>

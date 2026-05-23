@@ -197,6 +197,10 @@ Custom à construire (dans `packages/ui`) :
 - `<PageHeader />` — Titre + actions + breadcrumb
 - `<ModuleShell />` — Layout standard pour les pages de module (header + content + sidepanel optionnel)
 
+### Status badges (pattern subtil)
+
+Pour les indicateurs d'état multiples (succès / erreur / warning / info), utiliser inline `bg-{semantic}/10 text-{semantic}` plutôt que le composant `<Badge>` solid. Pattern hérité de shadcn (déjà visible dans `dropdown-menu` destructive). Réserve le composant `<Badge>` pour les labels / actions affirmés. La couleur sémantique est la même dans les deux cas — seul le poids visuel change.
+
 ---
 
 ## 6. Iconographie

@@ -49,5 +49,32 @@
     "connected": "You're signed in",
     "logout": "Sign out",
     "logoutLoading": "Signing out…"
+  },
+  "healthcheck": {
+    "title": "Healthcheck",
+    "subtitle": "Application stack status",
+    "states": {
+      "loading": "Loading…",
+      "success": "OK",
+      "error": "Error"
+    },
+    "labels": {
+      "latency": "Latency",
+      "payload": "Response"
+    },
+    "procedures": {
+      "ping": {
+        "name": "health.ping",
+        "description": "Public probe — returns a server timestamp."
+      },
+      "dbCheck": {
+        "name": "health.dbCheck",
+        "description": "Verifies the DB connection through SELECT 1."
+      },
+      "whoami": {
+        "name": "health.whoami",
+        "description": "Returns the user, active org and enabled modules (auth required)."
+      }
+    }
   }
 }

@@ -1,13 +1,10 @@
 {
-  "name": "@modulo/auth",
+  "name": "@modulo/api",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./client": "./src/client.ts",
-    "./next": "./src/next.ts",
-    "./cookies": "./src/cookies.ts"
+    ".": "./src/index.ts"
   },
   "files": [
     "src"
@@ -18,22 +15,18 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
-  "peerDependencies": {
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
-  },
   "dependencies": {
+    "@modulo/auth": "workspace:*",
     "@modulo/db": "workspace:*",
-    "better-auth": "1.4.22"
+    "@trpc/server": "11.17.0",
+    "superjson": "2.2.6",
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@modulo/eslint-config": "workspace:*",
     "@modulo/tsconfig": "workspace:*",
-    "@types/react": "19.0.6",
-    "@types/react-dom": "19.0.6",
+    "drizzle-orm": "0.38.3",
     "eslint": "9.17.0",
-    "react": "19.0.6",
-    "react-dom": "19.0.6",
     "typescript": "5.7.3",
     "typescript-eslint": "8.20.0",
     "vitest": "4.1.7"

@@ -49,5 +49,32 @@
     "connected": "Vous êtes connecté",
     "logout": "Se déconnecter",
     "logoutLoading": "Déconnexion en cours…"
+  },
+  "healthcheck": {
+    "title": "Healthcheck",
+    "subtitle": "État des couches de l'application",
+    "states": {
+      "loading": "Chargement…",
+      "success": "OK",
+      "error": "Erreur"
+    },
+    "labels": {
+      "latency": "Latence",
+      "payload": "Réponse"
+    },
+    "procedures": {
+      "ping": {
+        "name": "health.ping",
+        "description": "Sonde publique — répond avec un horodatage serveur."
+      },
+      "dbCheck": {
+        "name": "health.dbCheck",
+        "description": "Vérifie la connexion à la base via SELECT 1."
+      },
+      "whoami": {
+        "name": "health.whoami",
+        "description": "Renvoie l'utilisateur, l'org active et les modules activés (auth requis)."
+      }
+    }
   }
 }

@@ -12,13 +12,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
-import { z } from "zod";
 
 import { authClient } from "@modulo/auth/client";
 import { Button } from "@modulo/ui/components/button";
 import { Card } from "@modulo/ui/components/card";
 import { Input } from "@modulo/ui/components/input";
 
+import { makeSignupSchema } from "@/lib/auth-schemas";
 import { GithubLogo, GoogleLogo } from "../brand-logos";
 
 export default function SignupPage() {
@@ -30,12 +30,8 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Defined inside the component so Zod error messages stay localized.
-  const signupSchema = z.object({
-    name: z.string().min(1, t("errors.nameRequired")),
-    email: z.string().email(t("errors.invalidEmail")),
-    password: z.string().min(8, t("errors.passwordTooShort")),
-  });
+  // Factory consumes the next-intl `t()` so Zod error messages stay localized.
+  const signupSchema = makeSignupSchema(t);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
