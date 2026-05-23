@@ -8,6 +8,40 @@
 
 ---
 
+## 📅 2026-05-23 — Session 5 — Fondations auth — Better Auth
+
+### 🎯 Objectif de la session
+Mettre en place la couche authentification : package `@modulo/auth`, schéma BD étendu (sessions/accounts/verifications + colonnes sur users), pages `/login`/`/signup`, middleware de protection, providers email+password + GitHub/Google OAuth.
+
+### ✅ Tickets terminés
+- **T0.6** — Setup Better Auth complet. Package `@modulo/auth` (`better-auth@1.4.22`) avec sous-exports `/`, `/client`, `/next`, `/cookies`. Schéma `packages/db/schema/auth.ts` (sessions/accounts/verifications, FK `ON DELETE cascade` vers users) + ALTER `users` (`email_verified` + `image`). Migration **`0001_youthful_shatterstar.sql` appliquée sur Neon eu-west-2**. Handler API `[...all]/route.ts` exportant les 5 méthodes. Middleware `apps/web/middleware.ts` (matcher `/dashboard`). Pages `/login` et `/signup` (Client Components, validation **Zod**, OAuth + email/password). Page `/dashboard` protégée (Server Component lisant `auth.api.getSession()`) + `LogoutButton`. **3 users créés en BDD avec accounts + sessions actives**, login + dashboard + logout testés end-to-end.
+
+### 🧠 Décisions structurantes prises
+- **`better-auth@1.4.22` pin exact** (pas le `1.6.x` latest) — évite un bump `drizzle-orm` hors scope. Séparation des chantiers confirmée comme principe.
+- **3 adaptations API Better Auth 1.4 validées** au planning : `advanced.database.generateId: "uuid"` (obligatoire — sans ça BA génère des nanoid 32-chars incompatibles avec nos colonnes uuid PG) · `usePlural: true` + barrel `@modulo/db/schema` à plat (l'adapter veut le namespace flat, pas un mapping `{ user, session, ... }`) · `toNextJsHandler` exporte les 5 méthodes (`GET, POST, PATCH, PUT, DELETE`) pour rester future-proof aux plugins BA.
+- **`@modulo/auth` = single source of truth** pour Better Auth. `apps/web` ne dépend QUE de `@modulo/auth/*` via les sous-exports (`/client`, `/next`, `/cookies`), jamais directement de `better-auth/*`. Évite le couplage redondant.
+- **Forms = Zod côté client** (1ère utilisation Zod du projet, `zod@4.4.3` pin exact). Schémas définis hors composant, `safeParse` au submit, message d'erreur affiché. **Pattern à reproduire systématiquement en T1.X**.
+- **2 fixes pré-commit attrapés par le reviewer** : `requireEnv` symétrique sur `BETTER_AUTH_SECRET`/`BETTER_AUTH_URL` (évite un secret éphémère en prod / callbacks OAuth silencieusement cassés) · `try/finally` autour de `signOut()` dans `LogoutButton` (évite le `disabled` éternel si la navigation échoue).
+- **Workaround Windows** : Next + Turbo ne lisent pas le `.env.local` racine. **Modulo a désormais 2 `.env.local`** : un à la racine pour Drizzle Kit / migrations, un dans `apps/web/` pour Next runtime. Les deux sont gitignorés. Synchronisation manuelle.
+
+### ⚠️ Points d'attention pour les prochaines sessions
+- **Bug `/signup` redirect** : après création réussie (user bien créé en BD), la page ne redirige PAS vers `/dashboard`. Probable détail `callbackURL` / `autoSignIn` / réaction client BA à investiguer en début de Session 6.
+- **`NEXT_PUBLIC_BETTER_AUTH_URL` à exposer avant le 1er déploiement staging** : `createAuthClient()` actuel utilise `window.location.origin`, OK en dev, peut diverger en staging/prod. Important #2 du reviewer T0.6, non bloquant en local.
+- **Synchronisation des 2 `.env.local`** : à documenter dans `CLAUDE.md` ou `README` pour éviter qu'une future instance Claude prenne ça pour un bug.
+- **Vitest à installer en T0.7** (déjà reporté Sessions 3/4) — la fondation auth ne devrait pas rester sans couverture de tests (`requireEnv`, schémas Zod login/signup).
+- Rappels reportés : tokens dataviz `--chart-*` en T1.4 · ARCHITECTURE.md §3 à réconcilier · démo `sonner` à câbler quand vraie mutation à notifier (T0.7/T0.8) · `packages/config/tailwind-preset/index.ts` legacy à supprimer après T0.7.
+
+### 🚧 En cours / pas fini
+Aucun chantier de code ouvert. Working tree propre après le commit T0.6 (`24f5382`). Le bug `/signup` redirect est noté comme point d'attention à investiguer en début de Session 6.
+
+### 🔜 Prochain ticket
+- **T0.7** — Setup tRPC + middlewares multi-tenant. `packages/api` avec init tRPC v11, `createContext` qui résout user + org active, procédures `publicProcedure`/`authedProcedure`/`orgProcedure`/`moduleProcedure(id)`, route handler `apps/web/app/api/trpc/[trpc]/route.ts`, client React Query côté frontend. **Infra Vitest** à mettre en place dans le même ticket.
+
+### 💬 Notes libres
+Phase 0 à **60 %** (T0.1 → T0.6 sur 10 tickets). Première session avec signup OAuth réel testé en live — la chaîne `Better Auth → adapter Drizzle → Neon Postgres → cookies HttpOnly → session validée par auth.api.getSession()` est désormais opérationnelle de bout en bout.
+
+---
+
 ## 📅 2026-05-22 — Session 4 — Fondations BDD — Drizzle + Neon
 
 ### 🎯 Objectif de la session
