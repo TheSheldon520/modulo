@@ -44,6 +44,29 @@
       }
     }
   },
+  "onboarding": {
+    "createOrg": {
+      "title": "Créer votre organisation",
+      "subtitle": "Modulo s'organise autour de votre activité. Commencez par créer votre organisation.",
+      "nameLabel": "Nom de l'organisation",
+      "namePlaceholder": "Ex: Silverlit France SAS",
+      "slugLabel": "Identifiant unique",
+      "slugPlaceholder": "silverlit-france-sas",
+      "slugHint": "Lettres minuscules, chiffres et tirets uniquement",
+      "submitButton": "Créer mon organisation",
+      "submittingButton": "Création en cours…",
+      "logoutButton": "Se déconnecter",
+      "errors": {
+        "nameRequired": "Le nom est requis",
+        "nameTooLong": "Le nom est trop long (100 caractères max)",
+        "slugTooShort": "Identifiant trop court (3 caractères min)",
+        "slugTooLong": "Identifiant trop long (50 caractères max)",
+        "slugFormat": "Identifiant invalide : lettres minuscules, chiffres et tirets uniquement",
+        "slugTaken": "Cet identifiant est déjà utilisé. Choisissez-en un autre.",
+        "generic": "Une erreur est survenue. Réessayez."
+      }
+    }
+  },
   "dashboard": {
     "greeting": "Bonjour {email}",
     "connected": "Vous êtes connecté",

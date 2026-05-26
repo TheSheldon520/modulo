@@ -5,10 +5,12 @@
 // each sub-router is the source of structure.
 
 import { healthRouter } from "./routers/health";
+import { organizationsRouter } from "./routers/organizations";
 import { router } from "./trpc";
 
 export const appRouter = router({
   health: healthRouter,
+  organizations: organizationsRouter,
 });
 
 export type AppRouter = typeof appRouter;

@@ -44,11 +44,14 @@ export default function SignupPage() {
     }
 
     setLoading(true);
+    // `callbackURL` targets the onboarding step because a freshly created
+    // user has no organization yet; the middleware would bounce `/dashboard`
+    // back to `/onboarding/create-org` anyway.
     const { error: authError } = await authClient.signUp.email({
       name: parsed.data.name,
       email: parsed.data.email,
       password: parsed.data.password,
-      callbackURL: "/dashboard",
+      callbackURL: "/onboarding/create-org",
     });
     setLoading(false);
 
@@ -59,7 +62,7 @@ export default function SignupPage() {
       return;
     }
 
-    router.push("/dashboard");
+    router.push("/onboarding/create-org");
   }
 
   async function handleOAuth(provider: "github" | "google") {

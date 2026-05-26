@@ -54,8 +54,12 @@ export interface Context {
 /**
  * Name of the cookie holding the active organization id (uuid, not slug).
  * Id is stable; slug can be renamed by the org owner.
+ *
+ * Exported so other parts of the API (e.g. `organizations.create`) can
+ * re-emit the cookie through `ctx.resHeaders` after mutating membership,
+ * without re-declaring the cookie name or attributes in multiple places.
  */
-const ACTIVE_ORG_COOKIE = "modulo-active-org";
+export const ACTIVE_ORG_COOKIE = "modulo-active-org";
 
 /** 30 days in seconds. */
 const ACTIVE_ORG_COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
@@ -76,7 +80,14 @@ function readActiveOrgCookie(req: Request): string | null {
   return null;
 }
 
-function buildActiveOrgCookie(orgId: string): string {
+/**
+ * Builds a `Set-Cookie` value for the active-org cookie. Single source of
+ * truth for the cookie attributes (HttpOnly, SameSite, Secure-in-prod, Max-Age).
+ * Re-emitted in two places today:
+ *   - `createTRPCContext` when bootstrapping a missing cookie
+ *   - `organizations.create` mutation after creating an org + membership
+ */
+export function buildActiveOrgCookie(orgId: string): string {
   const isProd = process.env.NODE_ENV === "production";
   const attrs = [
     `${ACTIVE_ORG_COOKIE}=${encodeURIComponent(orgId)}`,
@@ -141,6 +152,16 @@ export async function createTRPCContext({
     .orderBy(memberships.createdAt);
 
   if (rows.length === 0) {
+    // Defense in depth: a stale `modulo-active-org` cookie may still be
+    // sitting in the browser (e.g. switched user across tabs, expired BA
+    // session, manual cookie tampering). Clear it so the middleware
+    // fast-path stops false-positive on the next request.
+    if (readActiveOrgCookie(req)) {
+      resHeaders.append(
+        "Set-Cookie",
+        `${ACTIVE_ORG_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`,
+      );
+    }
     return {
       db,
       user,

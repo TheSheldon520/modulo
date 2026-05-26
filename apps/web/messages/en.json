@@ -44,6 +44,29 @@
       }
     }
   },
+  "onboarding": {
+    "createOrg": {
+      "title": "Create your organization",
+      "subtitle": "Modulo grows around your business. Start by creating your organization.",
+      "nameLabel": "Organization name",
+      "namePlaceholder": "e.g. Silverlit France SAS",
+      "slugLabel": "Unique identifier",
+      "slugPlaceholder": "silverlit-france-sas",
+      "slugHint": "Lowercase letters, digits and dashes only",
+      "submitButton": "Create my organization",
+      "submittingButton": "Creating…",
+      "logoutButton": "Sign out",
+      "errors": {
+        "nameRequired": "Name is required",
+        "nameTooLong": "Name is too long (100 characters max)",
+        "slugTooShort": "Identifier is too short (3 characters min)",
+        "slugTooLong": "Identifier is too long (50 characters max)",
+        "slugFormat": "Invalid identifier: lowercase letters, digits and dashes only",
+        "slugTaken": "This identifier is already taken. Pick another one.",
+        "generic": "Something went wrong. Try again."
+      }
+    }
+  },
   "dashboard": {
     "greeting": "Hello {email}",
     "connected": "You're signed in",
