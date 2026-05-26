@@ -8,6 +8,41 @@
 
 ---
 
+## 📅 2026-05-23 — Session 6 — Fondations API — tRPC + onboarding
+
+### 🎯 Objectif de la session
+Poser la couche API typée bout-en-bout (tRPC v11 + middlewares multi-tenant), boucler les fondations transverses (i18n + Vitest), et implémenter le flow d'onboarding strict qui rend la chaîne signup → org → dashboard utilisable end-to-end.
+
+### ✅ Tickets terminés
+- **fix(auth)** — bugfix d'ouverture de session : `router.push("/dashboard")` manquant après `authClient.signIn.email` / `signUp.email` (le `callbackURL` côté client BA est inerte pour email/password) + bonus clear-error-on-input-change. Commit `e0be64f`.
+- **T0.6.5** — Setup i18n minimum viable (`next-intl@4.12.0` pin exact). Locale `fr` en dur, pas de routing URL ni de switcher. Messages `fr.json`/`en.json` mirror strict, extraction de toutes les strings (home, login, signup, dashboard). Schémas Zod déplacés dans les composants (`makeXxxSchema(t)`). Commit `2453e3b`.
+- **T0.7** — Setup tRPC v11 + middlewares multi-tenant + infra Vitest. Package `@modulo/api` (tRPC 11.17.0 + superjson + react-query 5.100.13, pin exact), 4 procédures (`publicProcedure`/`authedProcedure`/`orgProcedure`/`moduleProcedure(id)`) avec narrowing TS, `createTRPCContext` qui résout user + active org via cookie + enabledModules, client tRPC + provider React Query côté `apps/web`, page `/healthcheck` smoke test, infra Vitest 11 tests, refacto léger (`requireEnv` extrait dans `env.ts`, factories `make{Login,Signup}Schema(t)`). Pattern Status badges documenté dans `DESIGN_SYSTEM.md` §5. Commit `1447bc5`.
+- **T0.8** — Flow d'onboarding strict création organization. Mutation `organizations.create` (`authedProcedure` + transaction atomique org+membership, cookie posé post-commit, narrow `unknown→23505` → CONFLICT). Page `/onboarding/create-org` (auto-slugify avec flag `userEditedSlug`, validation Zod via factory, logout fallback). Utilitaire `slugify` + factory `makeCreateOrgSchema(t)` (8 nouveaux tests). Middleware étendu (matcher `/login`/`/signup`/`/dashboard/*`/`/onboarding/*`, 4 cas explicites sans boucle). Wrap BA route handler qui clear `modulo-active-org` sur `/sign-out` + defense in depth dans `createTRPCContext`. Scope i18n `onboarding.createOrg`. 2 bugs attrapés et fixés pendant le ticket : route group `(onboarding)` qui stripait l'URL → renommé en dossier normal ; cookie qui persistait après logout. Commit `41c1e92`.
+
+### 🧠 Décisions structurantes prises
+- **i18n sans URL routing** : locale `fr` en dur, pas de préfixe URL `/fr|/en`, pas de switcher UI. Future-proof simple, le locale-routing arrivera en Phase 1 si besoin (Phase 1 = onboarding marketing multilingue).
+- **Cookie `modulo-active-org` = fast-path multi-tenant** : middleware Option A cookie-only (pas de DB call, edge-safe). `createTRPCContext` valide réellement la membership côté serveur (le cookie est un hint, pas la vérité). Set/clear défensif via `resHeaders`. Wrap BA route handler clear le cookie sur `/sign-out` + defense in depth quand `rows.length === 0` et cookie pourri présent.
+- **Status badges = pattern subtil** : `bg-{semantic}/10 text-{semantic}` pour les indicateurs d'état multiples (cohérent avec `dropdown-menu` shadcn). Complète le composant `<Badge>` solid de `@modulo/ui` (label/action). Documenté dans `DESIGN_SYSTEM.md` §5.
+- **Tests via factory pattern** : schémas Zod = `make{Login,Signup,CreateOrg}Schema(t)`, `requireEnv` extrait dans `env.ts`. Tout testable avec un translator identité `(k) => k`. **Pattern à reproduire systématiquement** pour tous les forms futurs.
+
+### ⚠️ Points d'attention pour les prochaines sessions
+- **Edge cases cookie staleness (multi-tenant fast-path)** : (1) user avec org se reconnecte sur un nouveau navigateur → cookie absent → middleware le bounce vers `/onboarding` par erreur ; (2) OAuth callback ne déclenche PAS le clear-cookie (wrap fire uniquement sur `/sign-out`). **Solution Phase 1** : pré-populer cookie au sign-in via BA hook ou endpoint custom, OU basculer `/dashboard` en server-side check DB (abandon du fast-path cookie).
+- **Hardening `/healthcheck` + `/styleguide`** : guard `NODE_ENV !== 'development'` avant 1er déploiement staging. Ticket dédié avant le 1er deploy.
+- **Refacto `@modulo/auth` → `getAuth()` factory** : `betterAuth()` s'instancie au module-load → oblige un `test-setup.ts` avec env factices côté `@modulo/api`. À refactorer en lazy `getAuth()` (comme `getDb()`). Prévu T0.10.
+- **Test d'intégration `organizations.create`** : pas de test Vitest aujourd'hui (mutation avec transaction DB = test d'intégration). À planifier quand l'infra de test BDD arrive (testcontainers ou Neon branches en Phase 1).
+- **Rappels reportés des sessions précédentes** : `NEXT_PUBLIC_BETTER_AUTH_URL` avant staging (Session 5) · tokens dataviz `--chart-*` en T1.4 (Session 3) · `ARCHITECTURE.md` §3 à réconcilier (Sessions 4-5) · démo `sonner` à câbler dès qu'une vraie mutation à notifier · `packages/config/tailwind-preset/index.ts` legacy à supprimer · README packages partagés en Phase 1 · tokens `*-muted` symétriques aux `*-foreground` · status filter sur `enabled_modules` quand colonne `status` ajoutée en T0.10.
+
+### 🚧 En cours / pas fini
+Aucun chantier de code ouvert. Working tree propre après le commit T0.8 (`41c1e92`).
+
+### 🔜 Prochain ticket
+- **T0.9** — Stripe + billing + activation modules. Setup Stripe en mode test (clés env). Schéma : ajout colonne `status` enum sur `enabled_modules` (`active`/`trial`/`past_due`/`canceled`). Webhook handler `/api/webhooks/stripe` avec signing secret verification. Mapping Stripe Subscription → `enabled_modules` (insert/update via webhook events `checkout.session.completed`, `invoice.paid`, `invoice.payment_failed`, `subscription.deleted`). Procédure tRPC `billing.*` pour créer Checkout sessions et Customer Portal. UI minimale : page `/settings/billing` avec liste modules disponibles + bouton « Activer » qui ouvre Stripe Checkout. Tests Vitest sur la logique de mapping. **Note** : la ROADMAP est désynchronisée par les intercalaires T0.6.5 et T0.8 onboarding — à réconcilier en début de Phase 1 (ticket de doc).
+
+### 💬 Notes libres
+Phase 0 à **80 %** (T0.1 → T0.8 sur 10 tickets, en comptant T0.6.5 comme intercalary). Session marathon : 4 commits, ~50 fichiers touchés, 3 fix-après-test attrapés en flux (signup redirect, route group onboarding, cookie persistant après logout). La discipline `/review-before-commit` + tests Vitest + DevTools manuel a payé — chaque bug attrapé avant push.
+
+---
+
 ## 📅 2026-05-23 — Session 5 — Fondations auth — Better Auth
 
 ### 🎯 Objectif de la session
