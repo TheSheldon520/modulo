@@ -8,6 +8,67 @@
 
 ---
 
+## 📅 2026-05-28 — Session 11 — T1.2 premier module métier + IDEAS.md
+
+### 🎯 Objectif de la session
+Construire le tooling de scaffold de modules (`pnpm module:new`) + l'utiliser immédiatement pour livrer le premier module métier Sales Analytics (config, schema 3 tables, router vide, smoke test). Effet de levier majeur : le script servira pour tous les modules futurs. En bonus, formalisation d'un `IDEAS.md` racine pour le backlog d'idées non engagées (vs ROADMAP qui = tickets engagés).
+
+### ✅ Tickets terminés
+- **T1.2 (commit `4d96568`)** — `pnpm module:new` script + scaffold Sales Analytics. **18 fichiers, ~3048 insertions**. Détail :
+  - **Partie 1 — Tooling** : `scripts/module-new.ts` (tsx, regex kebab-case strict `^[a-z][a-z0-9-]*[a-z0-9]$`, 6 substitutions de tokens triées longueur DESC pour éviter collisions, 6 templates in-file). `tsx@4.19.2` ajouté en devDep root. Script `"module:new": "tsx scripts/module-new.ts"` dans `package.json` racine. Tests CLI validés : no-arg (help+exit1), BadCase (refus regex), already-exists (refus). `pnpm-workspace.yaml allowBuilds: { esbuild: true }` ajouté automatiquement par pnpm 11 (requis par tsx peer esbuild natif, accepté comme mécanisme pnpm 11 officiel).
+  - **Partie 2 — Sales Analytics** : `modules/sales-analytics/` complet (6 fichiers). `module.config.ts` niveau intermédiaire avec type local `ModuleConfig` + pattern `as const satisfies` (slug=`sales`, shortName, description, category `data`, 4 nav items incluant Paramètres avec `adminOnly`, defaultRolePermissions 4 rôles). `schema.ts` avec 3 tables (`salesPipelineStages`, `salesContacts`, `salesDeals`) — toutes avec `organization_id` FK CASCADE + index btree. `router.ts` vide (placeholder `_placeholder` query, sera enrichi T1.3). `package.json` workspace `@modulo/sales-analytics`. `README.md` + smoke test (2 asserts sur `salesAnalyticsConfig`).
+  - **Migrations** : `0004_sales_analytics_init.sql` (CREATE TABLE × 3 + FK + indexes) + `0005_rename_deal_title_contact_fullname.sql` (réécrite manuellement en ALTER RENAME au lieu de DROP+ADD généré par Drizzle, pour cross-env safety). Les 2 appliquées sur Neon. Renommages `title → name` sur `sales_deals`, `full_name → name` sur `sales_contacts`, ajout `phone` sur `sales_contacts`.
+  - **Re-export schema** : `packages/db/schema/index.ts` étendu (`export * from "../../../modules/sales-analytics/schema"`).
+  - **Registry inchangé** : `packages/api/src/modules/registry.ts` non modifié (sales-analytics y est déjà `status: "available"` depuis T0.9, pas d'extension prématurée — décision arbitrée).
+  - **5 fixes post-review** : (1) README chemin `../../` → `../../../` dans le module + template, (2) double import `@modulo/api` fusionné dans `router.ts` + template, (3+4) commentaires dette inline T1.3 pour `color` manquant sur `salesPipelineStages` + `orgStageIdx` composite manquant sur `salesDeals`, (5) CLAUDE.md step 5 augmenté avec workaround Turbo `pnpm --filter @modulo/db db:generate --name=<id>_init`.
+
+- **IDEAS.md (commit `95ac0fd`)** — Backlog d'idées Modulo créé à la racine. Premier entry : Retail Analytics (module concept pour les retailers Silverlit/distribution). Pattern : `IDEAS.md` = idées non engagées (brainstorm, opportunités, fertilisation croisée), `ROADMAP.md` = tickets engagés avec critères d'acceptation. Évite de polluer la ROADMAP avec des concepts non priorisés.
+
+### 🧠 Décisions structurantes prises
+- **`pnpm module:new` script en tsx via `scripts/module-new.ts`** (racine), pas de nouveau package npm. Templates in-file (tagged literals + substitution `replaceAll` triée DESC par longueur de token pour éviter les collisions). Pattern à reproduire pour tout futur script de tooling racine.
+- **`module.config.ts` niveau intermédiaire validé comme convention Modulo** pour tous les futurs modules : `slug` + `shortName` + `description` + `category` + `navigation` + `defaultRolePermissions`. Plus que minimaliste, moins que full BLUEPRINT (pas de `commands`, `trial`, `monthlyPrice` redondant). Template `scripts/module-new.ts` aligné avec 6 TODO inline pour personnalisation Chris.
+- **`icon: string`** (pas import lucide direct) pour éviter peer dep React côté module package. Le shell résoudra string → Component côté client quand T1.3+ consommera réellement le config.
+- **Type `ModuleConfig` local au module** pour T1.2. Centralisation T1.3+ probablement dans `@modulo/api/modules` quand le shell aura un vrai consommateur (sub-items sidebar, RBAC). JSDoc en-tête de `module.config.ts` planifie la migration.
+- **Pattern `as const satisfies ModuleConfig`** : narrowing littéral préservé + shape enforce. `type SalesAnalyticsScope = (typeof config.scopes)[number]` reste `"sales:read" | "sales:write" | "sales:admin"` (pas `string`). Convention à reproduire pour tout config typé strict.
+- **Registry `packages/api/src/modules/registry.ts` non touché** : sales-analytics déjà `status: "available"` depuis T0.9 (`b7d9a13`). Pas d'extension `ModuleDescriptor` prématurée — la richesse vit dans `module.config.ts` local, le registry minimaliste reste pour Stripe/availability uniquement. Pont entre les 2 viendra T1.3+ avec un vrai consommateur.
+- **Migration 0005 réécrite manuellement** en ALTER RENAME (3 statements) au lieu de DROP+ADD (5 statements généré par Drizzle). Cross-env safe — si une prod avait des données, le DROP+ADD pétait sur le `NOT NULL` sans default. Drizzle-kit interactif (prompts ↑↓+Enter) difficile à scripter en non-TTY sur Windows → bascule sur mode défaut + réécriture manuelle SQL. Snapshot reste cohérent (même état final).
+- **`pnpm-workspace.yaml allowBuilds: esbuild: true`** accepté (requis par tsx peer esbuild natif). Mécanisme pnpm 11 officiel, cohabite avec `onlyBuiltDependencies` existant sans conflit. À tracer dans README troubleshooting si la question revient sur d'autres machines.
+- **`IDEAS.md` à la racine** : nouveau pattern projet pour backlog d'idées non engagées (brainstorm, opportunités, fertilisation croisée modules). Séparation nette avec `ROADMAP.md` (= tickets engagés avec AC). Premier entry : Retail Analytics.
+
+### ⚠️ Points d'attention pour les prochaines sessions
+- **Dette inline `color`** manquant sur `sales_pipeline_stages` (ROADMAP T1.2 spec) : à ajouter en T1.3 quand l'UI gestion pipeline arrivera (1 colonne + migration 0006). Commentaire JSDoc inline planifie déjà.
+- **Dette inline `orgStageIdx`** composite manquant sur `sales_deals` : à ajouter en T1.5 quand le Kanban arrivera (perf hot path `WHERE org_id = ? AND stage = ?`). Commentaire inline dans le bloc indexes.
+- **`CLAUDE.md:84` obsolète** : référence `apps/web/trpc/router.ts` qui n'existe pas (vrai = `packages/api/src/router.ts`). Ticket doc séparé Phase 1+ (hors scope T1.2).
+- **`module.config.ts` type local** sera centralisé en T1.3+ probablement dans `@modulo/api/modules` quand le shell le consommera réellement (sidebar sub-items, RBAC).
+- **Stripe Price réel pour Sales Analytics** à créer manuellement par Chris dans Stripe Dashboard avant le 1er checkout en environnement non-test. Placeholder env aujourd'hui OK pour dev.
+- **Migration Drizzle Turbo issue** : `pnpm db:generate --name=X` intercepté par Turbo. Workaround `pnpm --filter @modulo/db db:generate --name=X` documenté dans `CLAUDE.md` step 5. Solution alternative `turbo.json passThroughArgs` reportée Phase 1+ (plus invasive).
+- **`pnpm-workspace.yaml allowBuilds`** : à tracer également dans README troubleshooting si la question revient sur d'autres machines.
+- **Rappels reportés des sessions précédentes** (toujours valides) :
+  - `NEXT_PUBLIC_BETTER_AUTH_URL` avant staging
+  - Refacto webhook handlers ~65% duplication (Phase 1+)
+  - Tests d'intégration webhook (testcontainers ou Neon branches)
+  - Vérifier tokens `*-muted` symétriques aux `*-foreground`
+  - Cleanup cookie `modulo-active-org` périmé via Route Handler ou middleware Phase 1+
+  - Sub-export `./active-org` pleinement consommé dans `trpc.ts` Phase 1+
+  - Découpage `@modulo/auth-server` / `@modulo/auth-client` si worker server-only émerge
+
+### 🚧 En cours / pas fini
+Aucun chantier de code ouvert. Working tree propre après `4d96568`. `pnpm dev` tourne sur `localhost:3000`.
+
+### 🔜 Prochain ticket
+- **T1.3 — Premier CRUD réel Sales Analytics**. Router tRPC procedures (`list` / `create` / `update` / `delete`) sur `sales_deals` + `sales_contacts` + `sales_pipeline_stages` via `moduleProcedure("sales-analytics")` + page UI minimale `/m/sales/deals` (vue table + dialog création via `<SubmitButton>` convention T1.0b) + seed des 3 premières pipeline stages par défaut (Lead, Qualified, Won) + premières données démo pour Chris Onboarding (pour valider le dogfooding Silverlit en parallèle).
+
+  T1.3 va aussi ajouter :
+  - Colonne `color` à `sales_pipeline_stages` (migration 0006) — fix de la dette T1.2 inline
+  - Index composite `orgStageIdx` sur `sales_deals` (migration 0007 ou intégrée à 0006) pour préparer le Kanban T1.5
+  - Branchement du router `sales-analytics` dans `packages/api/src/router.ts` (le root router tRPC)
+  - Centralisation potentielle du type `ModuleConfig` dans `@modulo/api/modules` si le shell commence à consommer `navigation[]` ou `defaultRolePermissions` (à arbitrer en début T1.3)
+
+### 💬 Notes libres
+Session enchainée immédiatement après Session 10 (T1.1 shell multi-tenant). 6 commits aujourd'hui au total : T1.0a → T1.0b → JOURNAL S9 → T1.1a → T1.1b → JOURNAL S10 (la veille) puis T1.2 + IDEAS.md (aujourd'hui 2026-05-28). T1.2 est le plus gros ticket Phase 1 livré à date (~3048 lignes, 18 fichiers). Le `pnpm module:new` est un effet de levier majeur — tous les futurs modules métier seront scaffoldés en 30 secondes au lieu de copier-coller du Silverlit Phase 0 manuellement. Le pattern `module.config.ts` niveau intermédiaire + `as const satisfies` + type local est désormais **convention Modulo documentée** dans le template. **Phase 1 à 57%** (5 tickets sur ~8-9 estimés pour finir le shell + module Sales). Prochain milestone : T1.3 CRUD réel — première vraie UI métier avec dogfooding live sur les données Silverlit.
+
+---
+
 ## 📅 2026-05-27 — Session 10 — T1.1 shell multi-tenant + Cmd+K
 
 ### 🎯 Objectif de la session
