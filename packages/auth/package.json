@@ -7,7 +7,8 @@
     ".": "./src/index.ts",
     "./client": "./src/client.ts",
     "./next": "./src/next.ts",
-    "./cookies": "./src/cookies.ts"
+    "./cookies": "./src/cookies.ts",
+    "./env": "./src/env.ts"
   },
   "files": [
     "src"

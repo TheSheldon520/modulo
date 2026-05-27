@@ -13,8 +13,12 @@
 //                          with session + no org   → 200 (form)
 //                          with session + active   → /dashboard
 //   /dashboard/*           without session         → /login
+//   /settings/*            without session         → /login
 //                          with session + no org   → /onboarding/create-org
 //                          with session + active   → 200 (page)
+//
+// `/api/webhooks/stripe` is intentionally OUTSIDE the matcher — Stripe calls
+// it server-to-server with no cookies and its own signature verification.
 //
 // `ACTIVE_ORG_COOKIE` is duplicated as a string literal here on purpose: the
 // middleware bundle must stay free of any server-only import (no
@@ -34,6 +38,8 @@ export function middleware(request: NextRequest) {
   const isAuthRoute = pathname === "/login" || pathname === "/signup";
   const isOnboardingRoute = pathname.startsWith("/onboarding");
   const isDashboardRoute = pathname.startsWith("/dashboard");
+  const isSettingsRoute = pathname.startsWith("/settings");
+  const isProtectedRoute = isDashboardRoute || isSettingsRoute;
 
   // 1. Logged-in users shouldn't see the login / signup forms.
   if (isAuthRoute && hasSession) {
@@ -41,12 +47,12 @@ export function middleware(request: NextRequest) {
   }
 
   // 2. Protected routes require a session cookie.
-  if ((isOnboardingRoute || isDashboardRoute) && !hasSession) {
+  if ((isOnboardingRoute || isProtectedRoute) && !hasSession) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
   // 3. With a session, route based on whether the user has an active org.
-  if (isDashboardRoute && hasSession && !hasActiveOrg) {
+  if (isProtectedRoute && hasSession && !hasActiveOrg) {
     return NextResponse.redirect(
       new URL("/onboarding/create-org", request.url),
     );
@@ -65,5 +71,6 @@ export const config = {
     "/signup",
     "/dashboard/:path*",
     "/onboarding/:path*",
+    "/settings/:path*",
   ],
 };

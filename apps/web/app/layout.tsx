@@ -4,6 +4,8 @@ import { GeistSans } from "geist/font/sans";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 
+import { Toaster } from "@modulo/ui/components/sonner";
+
 import { TRPCProvider } from "@/lib/trpc/provider";
 
 import "./globals.css";
@@ -31,6 +33,7 @@ export default async function RootLayout({
       <body className="font-sans" suppressHydrationWarning>
         <NextIntlClientProvider locale={locale} messages={messages}>
           <TRPCProvider>{children}</TRPCProvider>
+          <Toaster />
         </NextIntlClientProvider>
       </body>
     </html>

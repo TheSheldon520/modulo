@@ -73,6 +73,28 @@
     "logout": "Se déconnecter",
     "logoutLoading": "Déconnexion en cours…"
   },
+  "settings": {
+    "billing": {
+      "title": "Facturation",
+      "subtitle": "Activez les modules dont vous avez besoin.",
+      "activate": "Activer {price}",
+      "activating": "Activation en cours…",
+      "activated": "Activé",
+      "activatedSubtitle": "Activé via Stripe",
+      "pastDue": "Paiement échoué",
+      "canceled": "Annulé",
+      "comingSoon": "Bientôt disponible",
+      "managePortal": "Gérer ma souscription",
+      "openingPortal": "Ouverture du portail…",
+      "successToast": "Module activé !",
+      "canceledToast": "Activation annulée",
+      "errors": {
+        "alreadyActive": "Ce module est déjà activé.",
+        "noSubscription": "Vous n'avez aucune souscription active.",
+        "generic": "Une erreur est survenue. Réessayez."
+      }
+    }
+  },
   "healthcheck": {
     "title": "Healthcheck",
     "subtitle": "État des couches de l'application",

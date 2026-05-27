@@ -15,6 +15,13 @@
       "when": 1779503531122,
       "tag": "0001_youthful_shatterstar",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779839179337,
+      "tag": "0002_brief_hellcat",
+      "breakpoints": true
     }
   ]
 }

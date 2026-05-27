@@ -10,7 +10,7 @@
 // chain (publicProcedure → authedProcedure → orgProcedure → moduleProcedure).
 
 import { initTRPC } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
@@ -195,14 +195,18 @@ export async function createTRPCContext({
     role: chosen.role,
   };
 
-  // TODO(T0.10): once the Stripe webhook lands and `enabled_modules` gains a
-  // `status` column (`active | trial | past_due | canceled`), add a
-  // `eq(enabledModules.status, "active")` predicate here — otherwise canceled
-  // subscriptions would still grant module access.
+  // Module access is granted only by ACTIVE subscriptions. `past_due` rows
+  // remain in the table (so the billing UI can prompt the user to fix their
+  // card) but stop unlocking the corresponding module routes.
   const enabledRows = await db
     .select({ moduleId: enabledModules.moduleId })
     .from(enabledModules)
-    .where(eq(enabledModules.organizationId, activeOrg.id));
+    .where(
+      and(
+        eq(enabledModules.organizationId, activeOrg.id),
+        eq(enabledModules.status, "active"),
+      ),
+    );
 
   return {
     db,

@@ -73,6 +73,28 @@
     "logout": "Sign out",
     "logoutLoading": "Signing out…"
   },
+  "settings": {
+    "billing": {
+      "title": "Billing",
+      "subtitle": "Enable the modules you need.",
+      "activate": "Activate {price}",
+      "activating": "Activating…",
+      "activated": "Active",
+      "activatedSubtitle": "Active via Stripe",
+      "pastDue": "Payment failed",
+      "canceled": "Canceled",
+      "comingSoon": "Coming soon",
+      "managePortal": "Manage subscription",
+      "openingPortal": "Opening portal…",
+      "successToast": "Module activated!",
+      "canceledToast": "Activation canceled",
+      "errors": {
+        "alreadyActive": "This module is already active.",
+        "noSubscription": "You don't have any active subscription.",
+        "generic": "Something went wrong. Try again."
+      }
+    }
+  },
   "healthcheck": {
     "title": "Healthcheck",
     "subtitle": "Application stack status",

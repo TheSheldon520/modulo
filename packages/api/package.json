@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./stripe": "./src/stripe.ts"
   },
   "files": [
     "src"
@@ -19,6 +20,7 @@
     "@modulo/auth": "workspace:*",
     "@modulo/db": "workspace:*",
     "@trpc/server": "11.17.0",
+    "stripe": "22.1.1",
     "superjson": "2.2.6",
     "zod": "4.4.3"
   },
