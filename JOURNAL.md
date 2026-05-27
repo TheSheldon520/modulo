@@ -8,6 +8,51 @@
 
 ---
 
+## 📅 2026-05-27 — Session 10 — T1.1 shell multi-tenant + Cmd+K
+
+### 🎯 Objectif de la session
+Premier ticket structurant majeur Phase 1 : transformer l'app authentifiée du `/dashboard` plat T0.X vers un shell multi-tenant `/[orgSlug]/*` avec sidebar dynamique, topbar, theme injection, et command palette Cmd+K. Greffon préparatoire pour T1.2 (premier module métier Sales Analytics).
+
+### ✅ Tickets terminés
+- **T1.1a (commit `bb3d3f2`)** — Shell multi-tenant routing + sidebar + topbar + theme injection. **29 fichiers** touchés (19 créés + 12 modifiés + 2 supprimés). Routing complet `/[orgSlug]/*` (layout RSC qui valide slug+membership, 404 unifié sans timing attack, redirection racine `/` via cookie). Server Action `setActiveOrgCookie` (resync URL→cookie quand divergence, validée membership server-side). Sidebar Client Component collapsible (state `localStorage`), Topbar avec OrgSwitcher + UserMenu + bouton Cmd+K inerte. Theme injection mock via colonne `theme jsonb` ajoutée (migration `0003_add_org_theme.sql` appliquée par Chris). Procedure tRPC `organizations.list` créée. Page placeholder modules (3 cas : unknown 404 / non activé empty state / activé titre+desc). Tokens `*-muted` complets, focus-visible ring ajouté sidebar. Sub-export `./active-org` finalement ajouté dans `packages/auth/package.json`. Tests Vitest sur `theme-vars` (+3, total 46). Validation visuelle Chris : 8/8 scénarios OK. Review post-implémentation : 1 Critical (Server Action validation membership, fix appliqué) + 1 Important (page.tsx WHERE SQL au lieu de filter JS, cleanup cookie périmé documenté impossible en RSC Next 15) + 1 Nit a11y focus-visible.
+- **T1.1b (commit `fc99bb9`)** — Command palette Cmd+K avec registre extensible. **12 fichiers** touchés (6 créés + 6 modifiés). Composant `<CommandPalette>` Client Component avec listener global `Cmd+K`/`Ctrl+K`. Registre `ModuloCommand[]` (sections navigation/organization/module/action, dernière réservée T1.2+). Fonction pure `buildCommands(args, t)` + hook thin wrapper `useCommands` (pattern T1.0b lib pure isolée confirmé). Custom event `OPEN_EVENT` pour découpler topbar ↔ palette (sans prop drilling ni Context React). Interface structurelle `MinimalRouter` (évite import `next` depuis `packages/ui`). 3 sections de commandes : Navigation (dashboard, billing), Organizations (autres orgs du user via query `allOrgRows` dans layout), Modules (modules activés). i18n scope `app.commandPalette` complet (fr + en mirror). Démo styleguide avec mock data. 4 tests Vitest sur `buildCommands` (+4, total 47). Validation visuelle Chris : 8/8 scénarios OK. Review post-implémentation : 0 Critical, 2 Important + 2 Nits (`useMemo` deps stables via `orgsKey`/`modulesKey` projections d'ids, `CommandTranslator values` typage `Record<string, string | number | Date>`, TODO inline migration `/settings/billing` Phase 1+, commentaire section `"action"` réservée T1.2+). Aller-retour notable : élargissement `Record<string, unknown>` cassait next-intl, rétréci à `string | number | Date` après 5 erreurs typecheck.
+
+### 🧠 Décisions structurantes prises
+- **Routing `/[orgSlug]/*` — Option A "slug dans URL = source de vérité primaire"** : le slug en URL gagne contre le cookie en cas de divergence (User Intent first). Le cookie reste fast-path edge pour le middleware, mais la Server Action `setActiveOrgCookie` resync proprement. Pattern qui scale naturellement quand un user appartient à N orgs.
+- **Server Action `setActiveOrgCookie` avec validation membership server-side** : `getAuth().api.getSession()` + `SELECT memberships WHERE user_id=? AND organization_id=?` avant `cookies().set()`, throw si KO. Defense in depth multi-tenant — une Server Action est publiquement appelable depuis n'importe quel Client Component, donc validation au point d'entrée obligatoire. Pattern à reproduire pour TOUTE Server Action mutant du state cross-tenant en Phase 1+.
+- **Theme injection mock via `org.theme jsonb`** : la machinerie technique est en place (colonne DB, type `TenantTheme = Record<string, string> | null`, helper `generateThemeVars`, injection via `style={...}` dans le layout RSC). L'UI de modification (color picker OKLCH, `/settings/appearance`) est reportée T1.1.5 dédié. Séparation propre infra vs UX.
+- **Command palette `OPEN_EVENT` custom event window** : `topbar.tsx` dispatch `new CustomEvent("modulo:open-cmdk")`, `command-palette.tsx` écoute via `window.addEventListener`. Découplage parent/enfant à 3 niveaux de profondeur sans prop drilling ni Context React. Le nom d'event est exporté comme `OPEN_EVENT` const pour éviter le string hardcodé.
+- **`MinimalRouter` interface structurelle** dans `packages/ui/lib/commands/types.ts` au lieu d'importer `AppRouterInstance` depuis `next/dist/shared/lib/app-router-context.shared-runtime` : `packages/ui` reste découplée de Next (cohérent avec l'isolation du package design system). Duck typing TypeScript structurel safe. Risque évolution (Next 16 ajoute une méthode) acceptable car forward-compatible.
+- **`buildCommands` lib pure + thin hook wrapper** : pattern T1.0b SubmitButton confirmé comme **convention Modulo**. Logique pure isolée dans `packages/ui/lib/*` (testable sans jsdom/React), hook colocated `apps/web/.../use-*.ts` qui passe `useTranslations` au builder. À reproduire systématiquement pour toute logique complexe testable dans un composant Client.
+
+### ⚠️ Points d'attention pour les prochaines sessions
+- **Cleanup cookie `modulo-active-org` périmé** : impossible dans un Server Component Next 15 (`cookies().set()` y est interdit). Aujourd'hui un cookie pointant vers une org non-membre de l'user déclenche un redirect bénin sans cleanup (`page.tsx` ligne ~90). Fix via Route Handler `/api/cookie/clear-active-org` OU déplacer la résolution dans le middleware (qui peut écrire des cookies). À traiter Phase 1+.
+- **Query `allOrgRows` dans layout RSC** : 1 query DB supplémentaire par page render sur les routes `/[orgSlug]/*` (total 3 queries séquentielles). Acceptable T1.1 (latence ~150-450ms cumulés, hors zone rouge) mais à surveiller si volume monte. Optimisation possible via `unstable_cache` Next 15 ou parallélisation partielle (`Promise.all`) en Phase 1+.
+- **Cookie `sameSite` Lax vs lax** : `getActiveOrgCookieOptions()` retourne `"Lax"` (format Better Auth), Next 15 `cookies().set()` exige `"lax"` minuscule. La Server Action normalise inline. 2 consommateurs aujourd'hui (BA hook + Server Action). Extraire `getNextCookieOptions()` si un 3ème consommateur arrive (Phase 1+).
+- **Sub-export `./active-org` partiellement consommé** : Server Action + Server Component layout l'utilisent, mais `packages/api/src/trpc.ts` redéclare encore `ACTIVE_ORG_COOKIE_NAME` + `ACTIVE_ORG_COOKIE_MAX_AGE`. Dette DRY déjà documentée Session 9. Ticket dédié Phase 1+.
+- **`LogoutButton` flottant nu** sur le dashboard `/[orgSlug]/dashboard` — esthétique, à intégrer dans une vraie home org T1.2+.
+- **Migration routes `/settings/*` sous slug** : `/settings/billing` reste hors `[orgSlug]` aujourd'hui (décision T1.1a pour simplifier le scope). À migrer vers `/[orgSlug]/settings/billing` quand on ajoutera `/settings/general` ou `/settings/members` (Phase 1+).
+- **Cache Next.js corrompu sur Windows** : si comportement bizarre après touche à `app/`, `Remove-Item -Recurse -Force .next` puis `pnpm dev`. Symptôme observé Session 10. À documenter dans le README troubleshooting si ça revient.
+- **Rappels reportés des sessions précédentes** (encore valides) : tokens dataviz `--chart-*` en T1.4 · refacto webhook handlers ~65% duplication · tests d'intégration webhook (testcontainers ou Neon branches) · vérifier que les tokens `*-muted` sont symétriques aux `*-foreground` · `NEXT_PUBLIC_BETTER_AUTH_URL` avant staging · script `pnpm module:new` (T0.10 original reporté Phase 1) — à vérifier en début T1.2 si existe ou à créer.
+
+### 🚧 En cours / pas fini
+Aucun chantier de code ouvert. Working tree propre après `fc99bb9`. `pnpm dev` tourne sur `localhost:3000` (terminal `apps/web`).
+
+### 🔜 Prochain ticket
+- **T1.2 — Scaffold du module Sales Analytics** (premier module métier Phase 1). Étapes prévues :
+  - Vérifier si `pnpm module:new` (T0.10 original) existe — sinon le créer en début de T1.2 (script qui scaffold le dossier `modules/<id>/` depuis `MODULE_BLUEPRINT.md`)
+  - `pnpm module:new sales-analytics` (ou création manuelle si pas de script)
+  - `modules/sales-analytics/module.config.ts` (id, nom, icône `BarChart3`, pricing 29€/mois, scopes `sales:read|write|admin`, navigation items)
+  - Le module apparaît dans `/settings/billing` comme module activable (registry MODULES T0.9 à enrichir)
+  - Activation Stripe : flow déjà testé en T0.9 sur l'org "Chris Onboarding" — vérifier que `enabled_modules.status="active"` débloque l'item sidebar
+  - Page placeholder `/(app)/[orgSlug]/m/sales-analytics/page.tsx` (déjà couverte par placeholder générique T1.1a)
+  - Premières pages CRUD (overview / deals / contacts) en T1.3+ (ticket séparé)
+
+### 💬 Notes libres
+Session marathon : 2 gros commits enchaînés (T1.1a 29 fichiers + T1.1b 12 fichiers) immédiatement après Session 9 (T0.10 clôture Phase 0 + T1.0). 41 fichiers touchés au total sur T1.1, 2348 lignes ajoutées. Le pattern lib pure isolée + thin hook wrapper (`buildCommands` + `useCommands`) est désormais une **convention Modulo** documentée et appliquée 2× (T1.0b SubmitButton + T1.1b CommandPalette). Le shell multi-tenant est prod-ready (validations visuelles 16/16 sur les 2 chantiers, 47 tests verts, `pnpm build` propre). **Phase 1 à 50%** (4 tickets sur ~8 estimés pour finir le shell + scaffolding du premier module). Prochaine session = T1.2 scaffold Sales Analytics, première vraie greffe de code métier.
+
+---
+
 ## 📅 2026-05-27 — Session 9 — T1.0 polish dette critique Phase 0
 
 ### 🎯 Objectif de la session
