@@ -11,6 +11,8 @@
  */
 import { ArrowRight, Check, Plus, Settings, Trash2, User } from "lucide-react"
 
+import { CommandPaletteDemo } from "./command-palette-demo"
+
 import { Avatar, AvatarFallback } from "@modulo/ui/components/avatar"
 import { Badge } from "@modulo/ui/components/badge"
 import { Button } from "@modulo/ui/components/button"
@@ -459,6 +461,10 @@ export function ComponentsDemo() {
         <SubmitButton variant="outline" isLoading>
           Annuler
         </SubmitButton>
+      </Demo>
+
+      <Demo label="Command Palette">
+        <CommandPaletteDemo />
       </Demo>
 
       <Demo label="Installés · démo à venir">

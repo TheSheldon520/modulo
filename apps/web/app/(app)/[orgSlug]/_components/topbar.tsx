@@ -11,10 +11,11 @@
 // each can be tested / reordered independently.
 
 import { useTranslations } from "next-intl";
-import { PanelLeftClose, PanelLeft } from "lucide-react";
+import { PanelLeftClose, PanelLeft, Search } from "lucide-react";
 
 import { Button } from "@modulo/ui/components/button";
 
+import { OPEN_EVENT } from "./command-palette/command-palette";
 import { OrgSwitcher } from "./org-switcher";
 import { UserMenu } from "./user-menu";
 
@@ -57,7 +58,24 @@ export function Topbar({
 
       <OrgSwitcher activeOrg={activeOrg} />
 
-      <div className="ml-auto">
+      <div className="ml-auto flex items-center gap-2">
+        {/* Cmd+K trigger — dispatches a custom event picked up by <CommandPalette>.
+            Custom event avoids prop-drilling open state through layout → shell → topbar. */}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="gap-2 text-text-tertiary"
+          aria-label={t("openCommandPalette")}
+          onClick={() =>
+            window.dispatchEvent(new CustomEvent(OPEN_EVENT))
+          }
+        >
+          <Search className="size-4" strokeWidth={1.5} />
+          <span className="hidden text-xs sm:inline">
+            {t("cmdK")}
+          </span>
+        </Button>
         <UserMenu email={userEmail} />
       </div>
     </header>

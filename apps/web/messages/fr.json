@@ -88,7 +88,26 @@
       "userMenuAria": "Menu utilisateur",
       "logout": "Se déconnecter",
       "logoutLoading": "Déconnexion en cours…",
-      "loading": "Chargement…"
+      "loading": "Chargement…",
+      "openCommandPalette": "Ouvrir la palette de commandes",
+      "cmdK": "⌘K"
+    },
+    "commandPalette": {
+      "title": "Palette de commandes",
+      "description": "Recherchez des commandes et naviguez dans l'application.",
+      "placeholder": "Rechercher une commande…",
+      "empty": "Aucune commande trouvée",
+      "sections": {
+        "navigation": "Navigation",
+        "organization": "Organisations",
+        "module": "Modules"
+      },
+      "commands": {
+        "dashboard": "Aller au tableau de bord",
+        "billing": "Aller à la facturation",
+        "switchOrg": "Passer à {name}",
+        "goToModule": "Ouvrir {name}"
+      }
     },
     "module": {
       "inactive": {

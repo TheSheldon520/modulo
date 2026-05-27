@@ -88,7 +88,26 @@
       "userMenuAria": "User menu",
       "logout": "Sign out",
       "logoutLoading": "Signing out…",
-      "loading": "Loading…"
+      "loading": "Loading…",
+      "openCommandPalette": "Open command palette",
+      "cmdK": "⌘K"
+    },
+    "commandPalette": {
+      "title": "Command palette",
+      "description": "Search for commands and navigate the app.",
+      "placeholder": "Search a command…",
+      "empty": "No command found",
+      "sections": {
+        "navigation": "Navigation",
+        "organization": "Organizations",
+        "module": "Modules"
+      },
+      "commands": {
+        "dashboard": "Go to dashboard",
+        "billing": "Go to billing",
+        "switchOrg": "Switch to {name}",
+        "goToModule": "Go to {name}"
+      }
     },
     "module": {
       "inactive": {

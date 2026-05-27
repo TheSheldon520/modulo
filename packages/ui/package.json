@@ -8,6 +8,8 @@
     "./lib/utils": "./lib/utils.ts",
     "./lib/submit-button-state": "./lib/submit-button-state.ts",
     "./lib/theme-vars": "./lib/theme-vars.ts",
+    "./lib/commands/types": "./lib/commands/types.ts",
+    "./lib/commands/build-commands": "./lib/commands/build-commands.ts",
     "./components/*": "./components/*.tsx"
   },
   "files": [

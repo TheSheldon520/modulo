@@ -36,6 +36,7 @@ import { getModule } from "@modulo/api/modules/registry";
 
 
 import { OrgCookieResync } from "./_components/org-cookie-resync";
+import { CommandPalette } from "./_components/command-palette/command-palette";
 import { SidebarShell } from "./_components/sidebar-shell";
 import type { SidebarModule } from "./_components/sidebar";
 
@@ -102,12 +103,34 @@ export default async function OrgLayout({ children, params }: LayoutProps) {
     })
     .filter((value): value is SidebarModule => value !== null);
 
+  // All orgs the user belongs to — used by the command palette's organization
+  // section so they can switch orgs via Cmd+K. One extra DB query per layout
+  // render; negligible given it's already co-located with the org resolution
+  // query above and runs server-side (no client round-trip).
+  const allOrgRows = await db
+    .select({
+      id: organizations.id,
+      slug: organizations.slug,
+      name: organizations.name,
+    })
+    .from(memberships)
+    .innerJoin(organizations, eq(memberships.organizationId, organizations.id))
+    .where(eq(memberships.userId, session.user.id))
+    .orderBy(memberships.createdAt);
+
   const cookieStore = await cookies();
   const cookieOrgId = cookieStore.get(ACTIVE_ORG_COOKIE_NAME)?.value ?? null;
 
   return (
     <div style={generateThemeVars(org.theme)}>
       <OrgCookieResync orgId={org.id} currentCookieOrgId={cookieOrgId} />
+      {/* CommandPalette is a Dialog portal — visual position is irrelevant.
+          Mounted at layout level so it persists across page navigations. */}
+      <CommandPalette
+        org={{ id: org.id, slug: org.slug, name: org.name }}
+        orgs={allOrgRows}
+        enabledModules={sidebarModules}
+      />
       <SidebarShell
         orgSlug={org.slug}
         activeOrg={{ id: org.id, slug: org.slug, name: org.name }}
