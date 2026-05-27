@@ -35,6 +35,11 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { getDb } from "@modulo/db/client";
 import * as schema from "@modulo/db/schema";
 
+import {
+  ACTIVE_ORG_COOKIE_NAME,
+  getActiveOrgCookieOptions,
+  resolveActiveOrgForUser,
+} from "./active-org";
 import { requireEnv } from "./env";
 
 /**
@@ -70,6 +75,51 @@ function createAuth(): AuthInstance {
       google: {
         clientId: requireEnv("GOOGLE_CLIENT_ID"),
         clientSecret: requireEnv("GOOGLE_CLIENT_SECRET"),
+      },
+    },
+    databaseHooks: {
+      session: {
+        create: {
+          // Runs immediately after a session row is created — covers every
+          // login path BA supports (email/password, OAuth GitHub/Google,
+          // future providers, magic links) without enumeration. We use the
+          // hook to seed the `modulo-active-org` cookie on the very same
+          // HTTP response that issues the BA session cookie, eliminating
+          // the one-request window during which the middleware would
+          // otherwise bounce the user to `/onboarding` because the cookie
+          // is still missing.
+          after: async (session, ctx) => {
+            // `ctx` is null when BA is invoked outside an HTTP endpoint
+            // (cron, manual server action). No response to write to —
+            // silently skip. tRPC's `createTRPCContext` will repopulate
+            // the cookie on the user's next request anyway.
+            if (!ctx) return;
+            try {
+              const orgId = await resolveActiveOrgForUser(
+                getDb(),
+                session.userId,
+              );
+              // Zero-membership user: leave the cookie unset and let the
+              // middleware bounce them to `/onboarding`. Posting a stale
+              // org id would be worse than no cookie at all.
+              if (!orgId) return;
+              ctx.setCookie(
+                ACTIVE_ORG_COOKIE_NAME,
+                orgId,
+                getActiveOrgCookieOptions(),
+              );
+            } catch (err) {
+              // Never let a cookie write failure abort the login. Worst
+              // case the user falls through to `createTRPCContext`'s
+              // own fallback on the next request — i.e. the pre-fix
+              // behaviour we are correcting.
+              ctx.context.logger?.error?.(
+                "[auth-hook] failed to populate active-org cookie",
+                err,
+              );
+            }
+          },
+        },
       },
     },
   });
