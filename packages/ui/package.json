@@ -6,6 +6,7 @@
   "exports": {
     "./tokens": "./tokens/index.css",
     "./lib/utils": "./lib/utils.ts",
+    "./lib/submit-button-state": "./lib/submit-button-state.ts",
     "./components/*": "./components/*.tsx"
   },
   "files": [

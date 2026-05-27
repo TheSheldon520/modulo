@@ -14,6 +14,7 @@ import { ArrowRight, Check, Plus, Settings, Trash2, User } from "lucide-react"
 import { Avatar, AvatarFallback } from "@modulo/ui/components/avatar"
 import { Badge } from "@modulo/ui/components/badge"
 import { Button } from "@modulo/ui/components/button"
+import { SubmitButton } from "@modulo/ui/components/submit-button"
 import {
   Card,
   CardContent,
@@ -419,6 +420,45 @@ export function ComponentsDemo() {
             </CommandGroup>
           </CommandList>
         </Command>
+      </Demo>
+
+      {/*
+       * SubmitButton — convention non négociable pour toutes les mutations
+       * tRPC. Empêche le double-submit, signale clairement l'attente côté UX.
+       * À utiliser systématiquement à la place d'un <Button> nu pour toute
+       * action qui déclenche une mutation.
+       */}
+      <Demo label="SubmitButton">
+        <p className="w-full text-sm text-text-secondary">
+          À utiliser pour TOUTE mutation tRPC. Convention non négociable Modulo
+          — empêche le double-submit, signale clairement l&apos;attente côté
+          UX.
+        </p>
+
+        {/* État default */}
+        <SubmitButton>Enregistrer</SubmitButton>
+
+        {/* isLoading avec loadingLabel : swap du label */}
+        <SubmitButton isLoading loadingLabel="Création en cours…">
+          Créer
+        </SubmitButton>
+
+        {/* isLoading sans loadingLabel : spinner ajouté, children conservés */}
+        <SubmitButton isLoading>Enregistrer</SubmitButton>
+
+        {/* variant destructive + isLoading */}
+        <SubmitButton
+          variant="destructive"
+          isLoading
+          loadingLabel="Suppression en cours…"
+        >
+          Supprimer
+        </SubmitButton>
+
+        {/* variant outline + isLoading sans loadingLabel */}
+        <SubmitButton variant="outline" isLoading>
+          Annuler
+        </SubmitButton>
       </Demo>
 
       <Demo label="Installés · démo à venir">

@@ -24,6 +24,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { authClient } from "@modulo/auth/client";
 import { Button } from "@modulo/ui/components/button";
 import { Card } from "@modulo/ui/components/card";
+import { SubmitButton } from "@modulo/ui/components/submit-button";
 import { Input } from "@modulo/ui/components/input";
 
 import { makeCreateOrgSchema } from "@/lib/onboarding-schemas";
@@ -159,9 +160,14 @@ export default function CreateOrgPage() {
 
             {error ? <p className="text-sm text-danger">{error}</p> : null}
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? t("submittingButton") : t("submitButton")}
-            </Button>
+            <SubmitButton
+              type="submit"
+              className="w-full"
+              isLoading={createOrg.isPending}
+              loadingLabel={t("submittingButton")}
+            >
+              {t("submitButton")}
+            </SubmitButton>
 
             <Button
               type="button"

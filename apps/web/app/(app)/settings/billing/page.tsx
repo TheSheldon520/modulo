@@ -20,8 +20,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
-import { Button } from "@modulo/ui/components/button";
 import { Card } from "@modulo/ui/components/card";
+import { SubmitButton } from "@modulo/ui/components/submit-button";
 
 import { trpc } from "@/lib/trpc/client";
 
@@ -176,13 +176,16 @@ export default function BillingPage() {
         </div>
 
         <div className="flex justify-start">
-          <Button
+          <SubmitButton
+            type="button"
             variant="outline"
-            disabled={!hasAnySubscription || createPortal.isPending}
+            disabled={!hasAnySubscription}
+            isLoading={createPortal.isPending}
+            loadingLabel={t("openingPortal")}
             onClick={() => void handleOpenPortal()}
           >
-            {createPortal.isPending ? t("openingPortal") : t("managePortal")}
-          </Button>
+            {t("managePortal")}
+          </SubmitButton>
         </div>
       </div>
     </main>
@@ -215,9 +218,13 @@ function StatusBlock({
       ? t("activate", { price: monthlyPriceLabel })
       : t("activate", { price: "" });
     return (
-      <Button onClick={onActivate} disabled={isPending}>
-        {isPending ? t("activating") : label}
-      </Button>
+      <SubmitButton
+        onClick={onActivate}
+        isLoading={isPending}
+        loadingLabel={t("activating")}
+      >
+        {label}
+      </SubmitButton>
     );
   }
 

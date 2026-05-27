@@ -39,6 +39,7 @@ Lire **ARCHITECTURE.md** et **DESIGN_SYSTEM.md** avant toute génération substa
 2. **Mutations** via tRPC, jamais `fetch` direct côté client.
 3. **Suspense + streaming** pour les données lentes (dashboards, listes).
 4. **Pas** de `useEffect` pour fetcher des data côté client — utiliser `useQuery` tRPC ou un Server Component.
+5. **Mutations tRPC** : tout bouton submit lié à une mutation passe par `<SubmitButton isLoading={mutation.isPending}>` (composant `@modulo/ui`). Convention non négociable pour empêcher les double-submit et signaler clairement l'attente côté UX. Ne jamais utiliser un `<Button>` nu pour une mutation.
 
 ### 🏭 Factory pattern pour les clients externes
 1. Tout client tiers (DB, Auth, Stripe, SDK Anthropic, …) s'expose via une **factory `getXxx()`** lazy avec cache `globalThis`. Jamais d'instance eager au module-load.
