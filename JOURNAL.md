@@ -8,6 +8,40 @@
 
 ---
 
+## 📅 2026-05-27 — Session 7 — Billing Stripe + activation modules
+
+### 🎯 Objectif de la session
+Intégrer Stripe (Checkout + Customer Portal + Webhooks) et brancher l'activation des modules — premier flow business du projet, fondation du modèle économique modulaire.
+
+### ✅ Tickets terminés
+- **T0.9** — Stripe billing + module activation. Stripe SDK pin exact (`stripe@22.1.1`) + `apiVersion: "2026-04-22.dahlia"`. Schéma `billing.ts` étendu (`pgEnum module_status`, colonnes `status` / `stripe_subscription_id` UNIQUE / `stripe_customer_id`, table `stripe_webhook_events` pour idempotency). Migration `0002_brief_hellcat.sql` appliquée. Registry MODULES statique côté code (`packages/api/src/modules/registry.ts`, `sales-analytics` available + `crm` coming_soon). Router tRPC `billing` (3 procedures : `listAvailableModules` / `createCheckoutSession` / `createPortalSession`, toutes en `orgProcedure`). Webhook handler `/api/webhooks/stripe` : raw body + signature `constructEvent` + idempotency `event_id` PK + rollback DELETE si handler throw + transactions Drizzle uniformes sur les 4 handlers (`checkout.session.completed`, `invoice.paid`, `invoice.payment_failed`, `customer.subscription.deleted`) + validation `orgId` DB pré-INSERT (defense contre session forgée). Filtre `eq(status, "active")` ajouté dans `createTRPCContext` → `past_due` n'unlock plus les routes module. UI `/settings/billing` (Client Component, status badges semantic `bg-{token}/10 text-{token}`, toasts sonner). Toaster monté dans layout. Middleware étendu `/settings/:path*`. Scope i18n `settings.billing` (fr+en). 4 tests registry (23 total). Commit `b7d9a13`.
+
+### 🧠 Décisions structurantes prises
+- **Stripe SDK pin EXACT + `apiVersion` pinée** (`22.1.1` + `2026-04-22.dahlia`). Évite les breaking changes silencieux côté API Stripe. Pattern à reproduire pour toute intégration SDK externe critique.
+- **Module registry pattern** : MODULES défini statiquement côté code (typé via `satisfies Record<string, ModuleDescriptor>`), pas de fetch Stripe Products en runtime. Foundational pour scaler à N modules sans appels Stripe parasites. Les Price IDs viennent de l'env (lazy via getter), pas hardcodés.
+- **Webhook = seule source de vérité** pour l'état d'activation. Aucun set côté frontend post-redirect (`?success=true` est purement cosmétique, ne déclenche pas d'écriture DB). Idempotency table `stripe_webhook_events` (PK `event_id`) + ON CONFLICT DO NOTHING + DELETE rollback si handler throw → Stripe retry. Transactions Drizzle uniformes sur les 4 handlers (contrat strict).
+- **Sécurité webhook = 3 garde-fous combinés** : (1) signature Stripe vérifiée sur raw body via `constructEvent`, jamais bypassée même en dev — (2) `orgId` extrait de `session.metadata` re-vérifié contre la table `organizations` AVANT INSERT (defense contre session forgée si clé Stripe fuite) — (3) `requireEnv` lazy (getter sur `stripePriceId` + check au runtime du webhook) pour ne pas crasher le process si une var manque au boot.
+
+### ⚠️ Points d'attention pour les prochaines sessions
+- **Edge case cookie staleness post-login** : toujours reporté Phase 1 (documenté Session 6 ET 7). Pré-populer cookie au sign-in via BA hook OU basculer `/dashboard` en server-side check DB.
+- **`customer.subscription.updated` handler manquant** : à ajouter T0.10/Phase 1 quand `trial` sera réellement implémenté (transitions `trialing → active`, `past_due → active` post-portal).
+- **`stripeCustomerId` atomique** : aujourd'hui création non-atomique = doublon Customer possible si double-tab. À extraire en table `organizations_billing` dédiée avec upsert atomique en Phase 1.
+- **Skeleton loading `/settings/billing`** : pas de loading state ni d'error state (liste vide silencieuse). Dette UI Phase 1.
+- **Tests Vitest webhook handler** : aucun test sur signature/idempotency/handlers (test d'intégration → infra DB de test nécessaire, testcontainers ou Neon branches en Phase 1).
+- **`docs/MODULE_BLUEPRINT.md:55`** divergent du nouveau pattern lazy (`process.env.X!` au lieu de getter `requireEnv`). Ticket doc à part.
+- **Rappels reportés des sessions précédentes** : `NEXT_PUBLIC_BETTER_AUTH_URL` avant staging · refacto `@modulo/auth` → `getAuth()` factory (T0.10) · tokens `*-muted` symétriques aux `*-foreground` · guards `NODE_ENV !== 'development'` sur `/healthcheck` + `/styleguide` avant 1er deploy · `packages/config/tailwind-preset/index.ts` legacy à supprimer · démo `sonner` (faite côté billing, ✅) · `ARCHITECTURE.md` §3 à réconcilier · README packages partagés Phase 1 · ROADMAP désynchronisée par intercalaires T0.6.5 + T0.8 à réconcilier en début Phase 1.
+
+### 🚧 En cours / pas fini
+Aucun chantier ouvert. Working tree propre après le commit T0.9 (`b7d9a13`).
+
+### 🔜 Prochain ticket
+- **T0.10** — Dernier ticket Phase 0 : hardening + refactos pré-Phase 1. Notamment refacto `@modulo/auth` en `getAuth()` factory (lazy comme `getDb()`, supprime le besoin de `test-setup.ts` côté API), guards `NODE_ENV !== 'development'` sur `/healthcheck` + `/styleguide`, cleanup `packages/config/tailwind-preset/index.ts` legacy, ajout handler `customer.subscription.updated`, tokens `*-muted` symétriques. Ticket de doc en parallèle pour réconcilier ROADMAP + ARCHITECTURE.md + MODULE_BLUEPRINT.md.
+
+### 💬 Notes libres
+Phase 0 à **90 %** (T0.1 → T0.9 sur 10 tickets, en comptant T0.6.5 comme intercalaire). Session courte mais dense : un seul gros ticket, 1 commit. Le `/review-before-commit` a attrapé 2 vrais bloquants (validation orgId DB + lazy `requireEnv` sur `STRIPE_PRICE_*`) + 1 inconsistance (transactions non uniformes) — tous fixés avant push. Pattern qui se confirme : reviewer agressif sur les Critical, à recadrer en orchestrator avec analyse honnête.
+
+---
+
 ## 📅 2026-05-23 — Session 6 — Fondations API — tRPC + onboarding
 
 ### 🎯 Objectif de la session
