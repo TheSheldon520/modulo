@@ -32,6 +32,7 @@ import {
   organizations,
   stripeWebhookEvents,
 } from "@modulo/db/schema";
+import { mapStripeStatusToModuleStatus } from "./_helpers";
 
 /**
  * Routes a verified Stripe event to the matching handler. Returns nothing —
@@ -148,6 +149,66 @@ async function handleStripeEvent(db: DbClient, event: Stripe.Event): Promise<voi
           console.warn(
             "[stripe-webhook] invoice.payment_failed for unknown subscription",
             { subscriptionId },
+          );
+        }
+      });
+      return;
+    }
+
+    case "customer.subscription.updated": {
+      const subscription = event.data.object;
+      const orgId = subscription.metadata?.orgId;
+
+      if (!orgId) {
+        console.warn(
+          "[stripe-webhook] customer.subscription.updated missing orgId in metadata",
+          { subscriptionId: subscription.id },
+        );
+        return;
+      }
+
+      await db.transaction(async (tx) => {
+        // Pre-flight: validate the org exists before writing. Guards against a
+        // forged subscription with an arbitrary orgId in its metadata.
+        const orgRows = await tx
+          .select({ id: organizations.id })
+          .from(organizations)
+          .where(eq(organizations.id, orgId))
+          .limit(1);
+
+        if (orgRows.length === 0) {
+          console.warn(
+            "[stripe-webhook] customer.subscription.updated for unknown org",
+            { subscriptionId: subscription.id, orgId },
+          );
+          return;
+        }
+
+        // The UPDATE filters only on `stripe_subscription_id` (UNIQUE), not on
+        // `AND organization_id = orgId`. The pre-flight SELECT above already
+        // validated the orgId from metadata against the DB; the real lock on
+        // "this subscription belongs to this org" is the UNIQUE constraint on
+        // `stripe_subscription_id` + Stripe's webhook signature on the event.
+        // This matches the pattern of the four T0.9 handlers
+        // (`invoice.paid`, `invoice.payment_failed`, `subscription.deleted`,
+        // `checkout.session.completed`) — keeping the asymmetry-free for now.
+        // Factorisation into a shared `updateModuleBySubscription(tx, ...)`
+        // helper that uniformly adds the double-filter is tracked for Phase 1
+        // (cf. "Refacto webhook handlers ~65% dup" in JOURNAL Session 7).
+        const updated = await tx
+          .update(enabledModules)
+          .set({ status: mapStripeStatusToModuleStatus(subscription.status) })
+          .where(eq(enabledModules.stripeSubscriptionId, subscription.id))
+          .returning({ id: enabledModules.id });
+
+        if (updated.length === 0) {
+          console.warn(
+            "[stripe-webhook] customer.subscription.updated matched no rows",
+            {
+              subscriptionId: subscription.id,
+              orgId,
+              reason: "unknown subscription for org",
+            },
           );
         }
       });

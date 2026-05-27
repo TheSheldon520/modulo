@@ -57,7 +57,7 @@ export const enabledModules = pgTable(
     stripeSubscriptionId: text("stripe_subscription_id").unique(),
     stripeCustomerId: text("stripe_customer_id"),
     enabledAt: timestamp("enabled_at", { withTimezone: true }).defaultNow().notNull(),
-    // Config libre par module. Forme : { [moduleSpecificKey]: any }.
+    // Config libre par module. Forme : { [moduleSpecificKey]: unknown }.
     // Le typage Record<string, unknown> garantit "objet ou null", pas
     // "n'importe quoi".
     config: jsonb("config").$type<Record<string, unknown>>(),
@@ -69,6 +69,12 @@ export const enabledModules = pgTable(
 
 export type EnabledModule = typeof enabledModules.$inferSelect;
 export type NewEnabledModule = typeof enabledModules.$inferInsert;
+
+/**
+ * Union type derived from the Drizzle enum — single source of truth.
+ * Mirrors the pgEnum values: "active" | "trial" | "past_due" | "canceled"
+ */
+export type ModuleStatus = typeof moduleStatusEnum.enumValues[number];
 
 /**
  * Idempotency ledger for Stripe webhooks.

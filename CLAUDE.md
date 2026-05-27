@@ -40,6 +40,12 @@ Lire **ARCHITECTURE.md** et **DESIGN_SYSTEM.md** avant toute génération substa
 3. **Suspense + streaming** pour les données lentes (dashboards, listes).
 4. **Pas** de `useEffect` pour fetcher des data côté client — utiliser `useQuery` tRPC ou un Server Component.
 
+### 🏭 Factory pattern pour les clients externes
+1. Tout client tiers (DB, Auth, Stripe, SDK Anthropic, …) s'expose via une **factory `getXxx()`** lazy avec cache `globalThis`. Jamais d'instance eager au module-load.
+2. Exemples canoniques : `getDb()` dans `packages/db/src/client.ts` et `getAuth()` dans `packages/auth/src/index.ts`.
+3. Bénéfices : zéro side-effect d'import (les tests ne crashent pas si les env vars manquent), connexion établie à la première utilisation réelle, compatible HMR Next via le cache `globalThis`.
+4. Pour les env vars associées : `requireEnv("X")` est appelé **à l'intérieur** de la factory ou via un getter, pas au top-level du fichier. Le module reste importable même sans config complète.
+
 ---
 
 ## Conventions de nommage

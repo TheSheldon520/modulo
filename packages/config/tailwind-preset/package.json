@@ -3,18 +3,12 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "main": "./index.ts",
-  "types": "./index.ts",
   "exports": {
-    ".": {
-      "types": "./index.ts",
-      "default": "./index.ts"
-    },
     "./theme": "./theme.css"
   },
   "files": [
-    "index.ts",
-    "theme.css"
+    "theme.css",
+    "index.d.ts"
   ],
   "scripts": {
     "typecheck": "tsc --noEmit"

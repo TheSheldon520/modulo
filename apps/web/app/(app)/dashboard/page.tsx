@@ -1,7 +1,7 @@
 // apps/web/app/(app)/dashboard/page.tsx
 //
 // Authenticated home, Server Component. Real session validation happens here
-// (`auth.api.getSession` reads the cookie and hits the DB). The middleware
+// (`getAuth().api.getSession` reads the cookie and hits the DB). The middleware
 // only provides a fast cookie-presence redirect; this is the actual security
 // boundary.
 
@@ -9,12 +9,15 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
-import { auth } from "@modulo/auth";
+import { getAuth } from "@modulo/auth";
 
 import { LogoutButton } from "./logout-button";
 
 export default async function DashboardPage() {
-  const session = await auth.api.getSession({ headers: await headers() });
+  // `getAuth()` is the lazy factory — call inline, never store in a
+  // module-level const (the latter would re-introduce the eager pattern
+  // T0.10 removed).
+  const session = await getAuth().api.getSession({ headers: await headers() });
 
   if (!session) {
     redirect("/login");

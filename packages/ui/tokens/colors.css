@@ -46,6 +46,19 @@
   --danger-foreground: oklch(0.97 0.005 25); /* light, on --danger */
   --info-foreground: oklch(0.97 0.005 230); /* light, on --info */
 
+  /* Muted tokens — calibrated "subtle background" surfaces tinted by each
+     semantic hue. Same hue as the base token, drastically reduced chroma,
+     lightness aligned with the surface-3 hover band so a muted swatch reads
+     as a tinted elevated surface rather than a solid color. Pair with the
+     base semantic token for text/icon (e.g. `bg-success-muted text-success`).
+     Use these when you need a designer-controlled hover/focus state or want a
+     calibrated divergence light/dark; the inline `/10` pattern (e.g.
+     `bg-success/10 text-success`) remains valid for ad-hoc subtle tints. */
+  --success-muted: oklch(0.3 0.04 150);
+  --warning-muted: oklch(0.32 0.04 75);
+  --danger-muted: oklch(0.3 0.06 25);
+  --info-muted: oklch(0.3 0.04 230);
+
   /* === ELEVATION === */
   --shadow-sm: 0 1px 2px 0 oklch(0 0 0 / 0.2);
   --shadow-md: 0 4px 12px -2px oklch(0 0 0 / 0.3);

@@ -52,7 +52,13 @@ export const moduleConfig: ModuleConfig = {
 
   // Pricing — un produit Stripe par module
   pricing: {
-    stripePriceId: process.env.STRIPE_PRICE_SALES_ANALYTICS!,
+    // Pattern lazy via getter (T0.9) : `requireEnv` n'est appelé qu'à la lecture
+    // de la propriété, pas à l'import du config. Évite de crasher le process
+    // au boot si la var d'env manque pour un module non-billable
+    // (`coming_soon`) ou un environnement où Stripe n'est pas configuré.
+    get stripePriceId(): string {
+      return requireEnv("STRIPE_PRICE_SALES_ANALYTICS");
+    },
     monthlyPrice: 29,                             // EUR / org / mois
     trial: { days: 14 },
   },

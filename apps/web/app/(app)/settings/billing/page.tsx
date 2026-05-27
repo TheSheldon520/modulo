@@ -8,18 +8,16 @@
 //
 // Client Component because:
 //   - tRPC `useQuery` + `useMutation` (live state)
-//   - `useSearchParams` to read `?success=true` / `?canceled=true` after the
-//     Stripe redirect and surface a toast
 //   - `useRouter.replace` to scrub query params after toasting (avoid re-toast
 //     on hard refresh)
 //
-// No hardcoded colors — status badges use the `bg-{semantic}/10 text-{semantic}`
-// subtle pattern documented in DESIGN_SYSTEM §5. All strings flow through
-// next-intl under `settings.billing.*`.
+// `useSearchParams()` is isolated in <BillingToastWatcher> and wrapped in
+// <Suspense fallback={null}> to satisfy the Next 15 prerender requirement:
+// https://nextjs.org/docs/messages/missing-suspense-with-csr-bailout
 
+import { Suspense, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@modulo/ui/components/button";
@@ -53,19 +51,17 @@ function extractTRPCCode(err: unknown): string | undefined {
   return undefined;
 }
 
-export default function BillingPage() {
+/**
+ * Isolated consumer of `useSearchParams()`. Must live in its own component
+ * so the parent can wrap it in <Suspense> — Next 15 requires any component
+ * calling useSearchParams() to be inside a Suspense boundary during prerender.
+ * The fallback is intentionally null: toasts have no visual loading state.
+ */
+function BillingToastWatcher() {
   const t = useTranslations("settings.billing");
   const router = useRouter();
   const searchParams = useSearchParams();
   const utils = trpc.useUtils();
-
-  const modulesQuery = trpc.billing.listAvailableModules.useQuery();
-  const createCheckout = trpc.billing.createCheckoutSession.useMutation();
-  const createPortal = trpc.billing.createPortalSession.useMutation();
-
-  // Track the slug currently being checked out so only its button shows
-  // "Activating…" — otherwise every Activate button would flip at once.
-  const pendingSlugRef = useRef<string | null>(null);
 
   // Surface Stripe redirect outcomes via toast, then strip the query params
   // so a hard refresh doesn't re-toast.
@@ -82,6 +78,20 @@ export default function BillingPage() {
     // references in practice (next-intl/next memoise them), but listing them
     // explicitly silences exhaustive-deps without breaking semantics.
   }, [searchParams, t, router, utils]);
+
+  return null;
+}
+
+export default function BillingPage() {
+  const t = useTranslations("settings.billing");
+
+  const modulesQuery = trpc.billing.listAvailableModules.useQuery();
+  const createCheckout = trpc.billing.createCheckoutSession.useMutation();
+  const createPortal = trpc.billing.createPortalSession.useMutation();
+
+  // Track the slug currently being checked out so only its button shows
+  // "Activating…" — otherwise every Activate button would flip at once.
+  const pendingSlugRef = useRef<string | null>(null);
 
   async function handleActivate(slug: string) {
     pendingSlugRef.current = slug;
@@ -123,6 +133,13 @@ export default function BillingPage() {
 
   return (
     <main className="min-h-screen bg-surface-0 px-6 py-12">
+      {/* BillingToastWatcher calls useSearchParams() — must be wrapped in
+          Suspense to avoid Next 15 CSR bailout at prerender time. The null
+          fallback is intentional: toasts have no visual loading state. */}
+      <Suspense fallback={null}>
+        <BillingToastWatcher />
+      </Suspense>
+
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-8">
         <header className="flex flex-col gap-2">
           <h1 className="text-3xl font-medium tracking-tight text-text-primary">

@@ -203,7 +203,7 @@ function TokenLabel({ token, value }: { token: string; value?: string }) {
 }
 
 export default function StyleguidePage() {
-  if (process.env.NODE_ENV === "production") {
+  if (process.env.NODE_ENV !== "development") {
     notFound();
   }
 

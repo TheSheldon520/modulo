@@ -1,15 +1,34 @@
 // packages/api/src/modules/registry.test.ts
 //
-// Unit tests for the static module registry. `STRIPE_PRICE_SALES_ANALYTICS`
-// is set by `test-setup.ts` before this file is imported — the registry calls
-// `requireEnv` at module load, so the var must be defined globally for the
-// suite to even start.
+// Unit tests for the static module registry. The registry exposes
+// `stripePriceId` as a lazy getter backed by `requireEnv`, so any test that
+// reads it must scope the env var locally. We set it in `beforeAll` /
+// restore in `afterAll` to keep the suite hermetic — the global
+// `test-setup.ts` was removed in T0.10 (lazy `getAuth()` refactor) and we
+// no longer ship inert env defaults at the suite level.
 
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { getModule, listAvailableModules, MODULES } from "./registry";
 
+const STRIPE_PRICE_KEY = "STRIPE_PRICE_SALES_ANALYTICS";
+
 describe("module registry", () => {
+  let previousStripePrice: string | undefined;
+
+  beforeAll(() => {
+    previousStripePrice = process.env[STRIPE_PRICE_KEY];
+    process.env[STRIPE_PRICE_KEY] = "price_test_sales_analytics";
+  });
+
+  afterAll(() => {
+    if (previousStripePrice === undefined) {
+      delete process.env[STRIPE_PRICE_KEY];
+    } else {
+      process.env[STRIPE_PRICE_KEY] = previousStripePrice;
+    }
+  });
+
   it("looks up an existing slug", () => {
     const mod = getModule("sales-analytics");
     expect(mod).toBeDefined();

@@ -56,6 +56,8 @@ truth for the values themselves is `docs/DESIGN_SYSTEM.md`.
 - **T0.2** — décision : Tailwind v4 ne charge pas `tailwind.config.ts`. Le
   portage se fera en CSS-first (`@theme`), câblé via `@import` depuis
   `globals.css`, sans recréer de `tailwind.config.ts`.
-- **T0.3** — portage effectif : ajout de `theme.css`. `index.ts` est conservé
-  temporairement comme legacy (voir l'en-tête du fichier) et sera supprimé une
-  fois le câblage v4 validé.
+- **T0.3** — portage effectif : ajout de `theme.css`. `index.ts` conservé
+  temporairement comme legacy.
+- **T0.10** — suppression du `index.ts` legacy v3 (aucun consumer). Le package
+  ne ship plus que `theme.css` + un `index.d.ts` qui déclare le subpath pour
+  les consumers TS éventuels.

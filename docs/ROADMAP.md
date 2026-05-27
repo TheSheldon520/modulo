@@ -6,6 +6,16 @@
 
 L'objectif de cette phase : avoir un shell applicatif fonctionnel sur lequel on peut greffer des modules. **Ne pas commencer Sales Analytics tant que la phase 0 n'est pas terminée.**
 
+> **Note de réconciliation T0.10** (2026-05-27) — la ROADMAP initiale a évolué pendant l'exécution. Tickets réellement livrés Phase 0 :
+> - **T0.1 → T0.5** livrés conformes au plan initial.
+> - **T0.6** livré sans la « Personal Organization à la première connexion » — remplacée par un flow d'onboarding explicite (T0.8.5).
+> - **T0.6.5** ajoutée comme intercalaire pour poser l'i18n (next-intl, locale `fr` en dur) **avant** tRPC, parce que les schémas Zod consomment `t(...)`.
+> - **T0.7** livré conforme.
+> - **T0.8** original (Shell multi-tenant : sidebar dynamique, topbar, switcher d'org, command palette) **reporté Phase 1** — le shell minimal actuel suffit tant qu'il n'y a qu'une org active par user, et le shell complet a plus de valeur juste avant le premier module.
+> - **T0.8.5** ajoutée pour l'onboarding strict de création d'organisation, livrée Session 6 (`organizations.create` + middleware org-gate + cookie cleanup).
+> - **T0.9** réorienté : « Settings org + theming » → « Stripe billing + module activation ». Le color picker OKLCH et le theming par tenant sont reportés Phase 1.
+> - **T0.10** réorienté : « Système de modules » (registry + script `pnpm module:new`) → « Hardening + refactos pré-Phase 1 ». Le `moduleProcedure(id)` et le registry MODULES sont déjà en place (livrés T0.7 + T0.9). Le script `pnpm module:new` est reporté Phase 1.
+
 ### T0.1 — Init monorepo
 **Goal** : créer la structure pnpm + Turborepo avec les workspaces vides.
 - `pnpm init` + `pnpm-workspace.yaml`
@@ -66,58 +76,100 @@ L'objectif de cette phase : avoir un shell applicatif fonctionnel sur lequel on 
 
 ### T0.6 — Setup Better Auth
 **Goal** : login / signup / sessions.
-- Better Auth avec providers Email magic link + Google OAuth
-- Tables auth générées via Drizzle
-- Pages `/login`, `/signup`, `/logout`
-- Middleware Next qui protège `/(app)/*`
-- Création automatique d'une "Personal Organization" à la première connexion
+- Better Auth avec providers Email + GitHub OAuth + Google OAuth
+- Tables auth générées via Drizzle (`sessions`, `accounts`, `verifications` + colonnes `email_verified`, `image` sur `users`)
+- Pages `/login`, `/signup` + `LogoutButton`
+- Middleware Next qui protège `/dashboard`
 
 **Critères d'acceptation** : un user peut créer un compte, se connecter, accéder à `/dashboard`.
 
+> **Livré** Session 5 (`24f5382`). Note : la « Personal Organization à la première connexion » initialement prévue ici a été retirée au profit d'un onboarding explicite — voir T0.8.5.
+
 ---
 
-### T0.7 — Setup tRPC
+### T0.6.5 — Setup i18n minimum viable (intercalaire)
+**Goal** : poser la couche internationalisation avant tRPC, parce que les schémas Zod consomment `t(...)`.
+- `next-intl@4.12.0` pin exact
+- Locale `fr` en dur (pas de routing URL `/fr|/en`, pas de switcher UI)
+- Messages `fr.json` + `en.json` mirror strict (préparation Phase 1 multilingue)
+- Pattern factory pour les schémas Zod : `make{Login,Signup}Schema(t)` testables avec un translator identité
+
+**Critères d'acceptation** : toutes les strings UI (`/`, `/login`, `/signup`, `/dashboard`) passent par `useTranslations`. Aucune string hardcodée.
+
+> **Livré** Session 6 (`2453e3b`).
+
+---
+
+### T0.7 — Setup tRPC + middlewares multi-tenant + infra Vitest
 **Goal** : API typée bout-en-bout.
-- `packages/api` avec init tRPC v11
-- `createContext` qui résout user + org active
-- Procédures : `publicProcedure`, `authedProcedure`, `orgProcedure`, `moduleProcedure(id)`
+- `packages/api` avec init tRPC v11 + superjson + `@tanstack/react-query`
+- `createTRPCContext` qui résout user + org active (via cookie `modulo-active-org`) + `enabledModules`
+- 4 procédures : `publicProcedure`, `authedProcedure`, `orgProcedure`, `moduleProcedure(id)`
 - Route handler dans `apps/web/app/api/trpc/[trpc]/route.ts`
-- Client React Query côté frontend
+- Provider React Query + client tRPC côté `apps/web`
+- Page `/healthcheck` smoke test (3 procedures : `ping`, `dbCheck`, `whoami`)
+- Infra Vitest (11 tests : env helper + schemas)
 
-**Critères d'acceptation** : une procédure de test `hello.world` est appelable depuis un composant client avec types complets.
+**Critères d'acceptation** : une procédure de test est appelable depuis un composant client avec types complets. `pnpm test` vert.
+
+> **Livré** Session 6 (`1447bc5`).
 
 ---
 
-### T0.8 — Shell applicatif multi-tenant
-**Goal** : structure de navigation + theming par tenant.
+### T0.8 — Shell applicatif multi-tenant — **reporté Phase 1**
+**Goal initial** : structure de navigation par tenant.
 - Routes `/(app)/[orgSlug]/*` avec résolution de l'org via le slug
-- Sidebar dynamique : affiche uniquement les modules **activés** pour cette org
+- Sidebar dynamique affichant les modules **activés** pour cette org
 - Topbar : switcher d'org, avatar user, command palette (Cmd+K)
 - Layout qui injecte les CSS variables du thème de l'org
 
-**Critères d'acceptation** : on peut switcher entre orgs, la sidebar s'adapte, le thème s'applique.
+> **Décision T0.10** : reporté Phase 1, juste avant T1.1 (scaffold Sales Analytics). Justification : tant qu'il n'y a qu'une org active par user et zéro module, le shell minimal actuel (route plate `/dashboard`, pas de sidebar, pas de switcher) suffit. Le shell multi-tenant prend toute sa valeur le jour où la sidebar doit afficher les modules activés et où le switcher d'org devient utile (i.e. quand un user appartient à 2+ orgs).
 
 ---
 
-### T0.9 — Settings de l'org + theming
-**Goal** : page de paramètres pour personnaliser l'apparence.
-- `/settings/general` : nom, logo, slug
-- `/settings/appearance` : sélecteur de couleur d'accent (color picker OKLCH), preset de radius, density
-- `/settings/modules` : liste des modules avec toggle on/off (mock du billing pour l'instant)
-- `/settings/members` : invitations, gestion des rôles
+### T0.8.5 — Onboarding strict + middleware org-gate
+**Goal** : tout user qui n'appartient à aucune org est forcé sur `/onboarding/create-org` avant d'atteindre `/dashboard`.
+- Mutation tRPC `organizations.create` (`authedProcedure` + transaction atomique org + membership + cookie posé)
+- Page `/onboarding/create-org` (Client Component, auto-slugify avec flag `userEditedSlug`)
+- Middleware Next étendu (matcher `/login`, `/signup`, `/dashboard/*`, `/onboarding/*`) avec 4 cas explicites sans boucle
+- Cleanup cookie `modulo-active-org` post-logout (wrap BA route handler + defense in depth dans `createTRPCContext`)
 
-**Critères d'acceptation** : changer la couleur d'accent met à jour toute l'app en temps réel.
+**Critères d'acceptation** : un user fraîchement signup → atterrit sur `/onboarding/create-org`. Création org → atterrit sur `/dashboard`. Logout → cookie clearé.
+
+> **Livré** Session 6 (`41c1e92`).
 
 ---
 
-### T0.10 — Système de modules
-**Goal** : registre des modules + activation conditionnelle.
-- `packages/api` : registre des modules + résolution dynamique
-- Helpers `isModuleEnabled(orgId, moduleId)` et middleware tRPC `requireModuleEnabled`
-- Pages d'erreur 403 si module non activé
-- Script `pnpm module:new <id>` qui scaffold un module depuis `MODULE_BLUEPRINT.md`
+### T0.9 — Stripe billing + module activation
+**Goal** : premier flow business — souscription Stripe par module + activation conditionnelle des routes.
+- Stripe SDK pin exact (`stripe@22.1.1`) + `apiVersion` pinée
+- Schéma `billing.ts` : `pgEnum module_status` + colonnes `status`/`stripe_subscription_id`/`stripe_customer_id` sur `enabled_modules` + table `stripe_webhook_events` (idempotency)
+- Registry MODULES statique côté code (`packages/api/src/modules/registry.ts`)
+- Router tRPC `billing` (3 procedures : `listAvailableModules` / `createCheckoutSession` / `createPortalSession`)
+- Webhook handler `/api/webhooks/stripe` : raw body + signature `constructEvent` + idempotency PK + rollback DELETE si throw + transactions Drizzle uniformes sur les handlers (`checkout.session.completed`, `invoice.paid`, `invoice.payment_failed`, `customer.subscription.deleted`) + validation `orgId` DB pré-INSERT
+- Filtre `eq(status, "active")` dans `createTRPCContext` → `past_due` n'unlock plus les routes module
+- UI `/settings/billing` (status badges semantic + toasts sonner)
+- Scope i18n `settings.billing`
 
-**Critères d'acceptation** : on peut créer un module vide via le script, il apparaît dans `/settings/modules`, on peut l'activer/le désactiver.
+**Critères d'acceptation** : on peut souscrire en test mode via Stripe Checkout, le module s'active automatiquement via webhook, le Customer Portal est accessible.
+
+> **Livré** Session 7 (`b7d9a13`). Note : « Settings org + theming » initialement prévu ici (color picker OKLCH, `/settings/appearance`, `/settings/general`, `/settings/members`) est reporté Phase 1.
+
+---
+
+### T0.10 — Hardening + refactos pré-Phase 1
+**Goal** : éliminer la dette consciente accumulée pendant T0.5 → T0.9 et boucler la Phase 0 prod-ready.
+- Refacto `@modulo/auth` : `export const auth` eager → `getAuth()` factory lazy avec cache `globalThis` (pattern identique `getDb()`). Suppression du `test-setup.ts` côté `@modulo/api`.
+- Handler webhook `customer.subscription.updated` + helper pur `mapStripeStatusToModuleStatus()` (mapping 8 statuts Stripe → 4 statuts modulo, tests unitaires)
+- Guards `NODE_ENV !== "development"` sur `/healthcheck` et `/styleguide` (via Server Component wrapper pour `/healthcheck` qui est Client)
+- Tokens sémantiques `*-muted` (success / warning / danger / info) calibrés OKLCH + mapping `@theme inline` Tailwind v4
+- Suppression `packages/config/tailwind-preset/index.ts` legacy v3 (remplacé par un `index.d.ts` ambient déclarant le module `/theme` CSS-only)
+- Fix `useSearchParams()` Suspense boundary sur `/settings/billing` → `pnpm build` propre, page en static prerender
+- Réconciliation doc : ROADMAP + ARCHITECTURE §3 + MODULE_BLUEPRINT + CLAUDE (section Factory pattern)
+
+**Critères d'acceptation** : `pnpm typecheck` + `pnpm lint` + `pnpm test` (31+) verts. `pnpm build` propre. `/healthcheck` et `/styleguide` → 404 en prod. Phase 0 prod-ready.
+
+> **Livré** Session 7 (`<commit T0.10>`). Note : le « registre des modules + script `pnpm module:new` » initialement prévu ici (T0.10 original) est partiellement déjà en place (`moduleProcedure(id)` livré T0.7, registry MODULES livré T0.9) — le script `pnpm module:new` est reporté Phase 1.
 
 ---
 

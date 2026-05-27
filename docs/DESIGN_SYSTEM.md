@@ -201,6 +201,8 @@ Custom à construire (dans `packages/ui`) :
 
 Pour les indicateurs d'état multiples (succès / erreur / warning / info), utiliser inline `bg-{semantic}/10 text-{semantic}` plutôt que le composant `<Badge>` solid. Pattern hérité de shadcn (déjà visible dans `dropdown-menu` destructive). Réserve le composant `<Badge>` pour les labels / actions affirmés. La couleur sémantique est la même dans les deux cas — seul le poids visuel change.
 
+**`bg-{semantic}-muted` vs `bg-{semantic}/10`** — chaque token sémantique expose aussi une variante `*-muted` calibrée par design (`--success-muted`, `--warning-muted`, `--danger-muted`, `--info-muted`). Utilise `*-muted` quand tu veux une teinte calibrée (hover/focus state, divergence light/dark contrôlée, contraste précis avec un foreground). Utilise `/10` quand tu veux juste un voile au-dessus du token sémantique (ad-hoc, suffit pour la plupart des status badges).
+
 ---
 
 ## 6. Iconographie

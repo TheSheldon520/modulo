@@ -122,33 +122,46 @@ modulo/
 
 ## 3. Schéma BDD — tables core
 
+Conventions adoptées Phase 0 (T0.5 + T0.9) :
+- **ID** : `uuid` PostgreSQL généré côté app via lib `uuidv7` + `$defaultFn` (PG 17 n'a pas `uuidv7()` natif, et on veut un ID triable temporellement pour la localité d'index).
+- **Timestamps** : `timestamptz` partout (`timestamp(..., { withTimezone: true })`) — best practice SaaS B2B, évite les bugs de DST.
+- **`updated_at`** sur toutes les tables avec lifecycle de modification (toutes sauf les memberships purement transactionnelles).
+- **FK `ON DELETE CASCADE`** sur tout ce qui appartient à une org (cleanup naturel au delete d'org).
+
 ```typescript
 // packages/db/schema/core.ts
 
+import { pgTable, uuid, text, timestamp, unique } from "drizzle-orm/pg-core";
+import { uuidv7 } from "uuidv7";
+
 export const users = pgTable("users", {
-  id: text("id").primaryKey(),
+  id: uuid("id").primaryKey().$defaultFn(() => uuidv7()),
   email: text("email").notNull().unique(),
   name: text("name"),
   image: text("image"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  emailVerified: timestamp("email_verified", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 export const organizations = pgTable("organizations", {
-  id: text("id").primaryKey(),
+  id: uuid("id").primaryKey().$defaultFn(() => uuidv7()),
   slug: text("slug").notNull().unique(),
   name: text("name").notNull(),
   logoUrl: text("logo_url"),
-  // Theming personnalisé par tenant
-  theme: jsonb("theme").$type<TenantTheme>().default(defaultTheme),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  // Note : le `theme` jsonb par tenant (color picker OKLCH, preset radius, density) est
+  // reporté à Phase 1. Aujourd'hui le theming passe par les CSS vars globales sans
+  // persistence par tenant.
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 export const memberships = pgTable("memberships", {
-  id: text("id").primaryKey(),
-  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
-  organizationId: text("organization_id").references(() => organizations.id, { onDelete: "cascade" }).notNull(),
+  id: uuid("id").primaryKey().$defaultFn(() => uuidv7()),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  organizationId: uuid("organization_id").references(() => organizations.id, { onDelete: "cascade" }).notNull(),
   role: text("role", { enum: ["owner", "admin", "member", "viewer"] }).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({
   unq: unique().on(t.userId, t.organizationId),
 }));
@@ -156,19 +169,25 @@ export const memberships = pgTable("memberships", {
 // packages/db/schema/billing.ts
 
 export const enabledModules = pgTable("enabled_modules", {
-  id: text("id").primaryKey(),
-  organizationId: text("organization_id").references(() => organizations.id, { onDelete: "cascade" }).notNull(),
+  id: uuid("id").primaryKey().$defaultFn(() => uuidv7()),
+  organizationId: uuid("organization_id").references(() => organizations.id, { onDelete: "cascade" }).notNull(),
   moduleId: text("module_id").notNull(),         // ex: "sales-analytics"
-  status: text("status", { enum: ["active", "trial", "past_due", "canceled"] }).notNull(),
-  stripeSubscriptionId: text("stripe_subscription_id"),
-  activatedAt: timestamp("activated_at").defaultNow().notNull(),
-  expiresAt: timestamp("expires_at"),
+  status: moduleStatusEnum("status").notNull().default("active"),  // pgEnum: active | trial | past_due | canceled
+  stripeSubscriptionId: text("stripe_subscription_id").unique(),
+  stripeCustomerId: text("stripe_customer_id"),
+  enabledAt: timestamp("enabled_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({
   unq: unique().on(t.organizationId, t.moduleId),
 }));
+
+// Table d'idempotency pour les webhooks Stripe (T0.9).
+export const stripeWebhookEvents = pgTable("stripe_webhook_events", {
+  eventId: text("event_id").primaryKey(),  // ID Stripe = source de vérité, pas d'uuid maison
+  processedAt: timestamp("processed_at", { withTimezone: true }).defaultNow().notNull(),
+});
 ```
 
-**Règle BDD pour les modules** : chaque table d'un module DOIT avoir une colonne `organization_id` indexée et reliée par foreign key. C'est la base de l'isolation multi-tenant. À **renforcer côté code** par un middleware tRPC qui injecte le `WHERE organization_id = ?` automatiquement.
+**Règle BDD pour les modules** : chaque table d'un module DOIT avoir une colonne `organization_id` indexée et reliée par foreign key. C'est la base de l'isolation multi-tenant. À **renforcer côté code** par un middleware tRPC qui injecte le `WHERE organization_id = ?` automatiquement (cf. `moduleProcedure(id)` dans `packages/api`).
 
 ---
 

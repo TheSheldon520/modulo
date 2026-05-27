@@ -14,7 +14,7 @@ import { and, eq } from "drizzle-orm";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
-import { auth, type Session } from "@modulo/auth";
+import { getAuth, type Session } from "@modulo/auth";
 import { getDb, type DbClient } from "@modulo/db/client";
 import { enabledModules, memberships, organizations } from "@modulo/db/schema";
 
@@ -117,7 +117,10 @@ export async function createTRPCContext({
 }): Promise<Context> {
   const db = getDb();
 
-  const session = await auth.api.getSession({ headers: req.headers });
+  // `getAuth()` is the lazy factory — calling it inline (not stored in a
+  // top-level const) is the contract that keeps BA env vars deferred to
+  // first request. Do not refactor this to a module-level binding.
+  const session = await getAuth().api.getSession({ headers: req.headers });
 
   if (!session) {
     return {

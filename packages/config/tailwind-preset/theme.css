@@ -76,6 +76,10 @@
   --color-warning-foreground: var(--warning-foreground);
   --color-danger-foreground: var(--danger-foreground);
   --color-info-foreground: var(--info-foreground);
+  --color-success-muted: var(--success-muted);
+  --color-warning-muted: var(--warning-muted);
+  --color-danger-muted: var(--danger-muted);
+  --color-info-muted: var(--info-muted);
 }
 
 @theme inline {
