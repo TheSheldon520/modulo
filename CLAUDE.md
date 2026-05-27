@@ -77,7 +77,7 @@ Lire **ARCHITECTURE.md** et **DESIGN_SYSTEM.md** avant toute génération substa
 2. Définir `module.config.ts` (id, nom, icône, prix Stripe, scopes…)
 3. Définir le schéma BDD dans `modules/<id>/schema.ts` (toujours avec `organizationId`)
 4. Ajouter le schéma au barrel `packages/db/schema/index.ts`
-5. Générer la migration : `pnpm db:generate --name=<id>_init`
+5. Générer la migration : `pnpm --filter @modulo/db db:generate --name=<id>_init` (le `--filter` est obligatoire — Turbo root intercepte le flag `--name` sinon)
 6. Créer le router tRPC dans `modules/<id>/router.ts` (avec `moduleProcedure("<id>")`)
 7. Ajouter le router à `apps/web/trpc/router.ts`
 8. Créer les pages dans `modules/<id>/pages/`

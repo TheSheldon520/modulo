@@ -1,0 +1,30 @@
+{
+  "name": "@modulo/sales-analytics",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./router.ts",
+    "./schema": "./schema.ts",
+    "./config": "./module.config.ts"
+  },
+  "files": [
+    "module.config.ts",
+    "schema.ts",
+    "router.ts",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@modulo/api": "workspace:*",
+    "@modulo/auth": "workspace:*",
+    "@modulo/db": "workspace:*",
+    "drizzle-orm": "0.38.3",
+    "uuidv7": "1.0.2"
+  },
+  "devDependencies": {
+    "vitest": "4.1.7"
+  }
+}

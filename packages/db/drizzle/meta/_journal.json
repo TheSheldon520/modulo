@@ -29,6 +29,20 @@
       "when": 1779914002622,
       "tag": "0003_add_org_theme",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1779921402482,
+      "tag": "0004_sales_analytics_init",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1779922506089,
+      "tag": "0005_rename_deal_title_contact_fullname",
+      "breakpoints": true
     }
   ]
 }
