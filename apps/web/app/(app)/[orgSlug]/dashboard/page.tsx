@@ -1,9 +1,12 @@
-// apps/web/app/(app)/dashboard/page.tsx
+// apps/web/app/(app)/[orgSlug]/dashboard/page.tsx
 //
-// Authenticated home, Server Component. Real session validation happens here
-// (`getAuth().api.getSession` reads the cookie and hits the DB). The middleware
-// only provides a fast cookie-presence redirect; this is the actual security
-// boundary.
+// Authenticated home, Server Component. The tenant boundary (slug → org →
+// membership) is enforced by the parent layout (`[orgSlug]/layout.tsx`), so
+// this page can trust it runs inside a valid org context. We still call
+// `getAuth().api.getSession` because the dashboard wants the user identity
+// for the greeting — the redirect here is a defense-in-depth no-op.
+//
+// Moved from `apps/web/app/(app)/dashboard/page.tsx` as part of T1.1.
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -26,7 +29,7 @@ export default async function DashboardPage() {
   const t = await getTranslations("dashboard");
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-surface-0 px-6">
+    <main className="flex min-h-full flex-col items-center justify-center bg-surface-0 px-6 py-12">
       <h1 className="text-3xl font-medium tracking-tight text-text-primary">
         {t("greeting", { email: session.user.email })}
       </h1>

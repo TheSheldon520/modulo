@@ -10,6 +10,7 @@
 // org without a round-trip to `whoami`.
 
 import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { memberships, organizations } from "@modulo/db/schema";
@@ -47,7 +48,47 @@ function isUniqueViolation(err: unknown): boolean {
   );
 }
 
+/**
+ * Membership role union — kept in lock-step with the `roleEnum` in
+ * `packages/db/schema/core.ts`. Re-declared at the router boundary so the
+ * tRPC client doesn't pull a Drizzle type through superjson.
+ */
+const membershipRoleSchema = z.enum(["owner", "admin", "member", "viewer"]);
+
 export const organizationsRouter = router({
+  /**
+   * Every organization the current user is a member of, ordered by membership
+   * age (oldest first — same ordering used in `createTRPCContext` for
+   * deterministic fallbacks). Powers the topbar `<OrgSwitcher>` in the
+   * tenant-scoped shell.
+   */
+  list: authedProcedure
+    .output(
+      z.array(
+        z.object({
+          id: z.string().uuid(),
+          slug: z.string(),
+          name: z.string(),
+          role: membershipRoleSchema,
+        }),
+      ),
+    )
+    .query(async ({ ctx }) => {
+      const rows = await ctx.db
+        .select({
+          id: organizations.id,
+          slug: organizations.slug,
+          name: organizations.name,
+          role: memberships.role,
+        })
+        .from(memberships)
+        .innerJoin(organizations, eq(memberships.organizationId, organizations.id))
+        .where(eq(memberships.userId, ctx.user.id))
+        .orderBy(memberships.createdAt);
+
+      return rows;
+    }),
+
   create: authedProcedure
     .input(createInput)
     .mutation(async ({ ctx, input }) => {

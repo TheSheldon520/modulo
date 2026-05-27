@@ -7,15 +7,23 @@
 //
 // Rules:
 //
-//   /login, /signup        with session            → /dashboard
+//   /login, /signup        with session            → /
 //                          without session         → 200 (form)
 //   /onboarding/*          without session         → /login
 //                          with session + no org   → 200 (form)
-//                          with session + active   → /dashboard
-//   /dashboard/*           without session         → /login
+//                          with session + active   → /
 //   /settings/*            without session         → /login
 //                          with session + no org   → /onboarding/create-org
 //                          with session + active   → 200 (page)
+//   /:orgSlug/dashboard/*  without session         → /login
+//                          with session + no org   → /onboarding/create-org
+//                          with session + active   → 200 (page)
+//   /:orgSlug/m/*          same as above
+//
+// `/` is intentionally NOT in the matcher: the landing page renders publicly
+// for anonymous users and the Server Component does its own session-aware
+// redirect when a session exists (resolves the active org slug from the DB,
+// which the edge middleware cannot do without spawning a connection).
 //
 // `/api/webhooks/stripe` is intentionally OUTSIDE the matcher — Stripe calls
 // it server-to-server with no cookies and its own signature verification.
@@ -37,13 +45,24 @@ export function middleware(request: NextRequest) {
 
   const isAuthRoute = pathname === "/login" || pathname === "/signup";
   const isOnboardingRoute = pathname.startsWith("/onboarding");
-  const isDashboardRoute = pathname.startsWith("/dashboard");
   const isSettingsRoute = pathname.startsWith("/settings");
-  const isProtectedRoute = isDashboardRoute || isSettingsRoute;
 
-  // 1. Logged-in users shouldn't see the login / signup forms.
+  // A tenant-scoped route is `/<slug>/dashboard/*` or `/<slug>/m/*`. The
+  // matcher already restricts what reaches this function — we re-check
+  // explicitly so the routing logic below stays self-documenting.
+  const segments = pathname.split("/").filter(Boolean);
+  const isTenantRoute =
+    segments.length >= 2 &&
+    (segments[1] === "dashboard" || segments[1] === "m");
+
+  const isProtectedRoute = isTenantRoute || isSettingsRoute;
+
+  // 1. Logged-in users shouldn't see the login / signup forms. We send them to
+  //    `/`, which is itself a Server Component that resolves the active org
+  //    slug and forwards to `/<slug>/dashboard`. Bouncing to `/` (rather than
+  //    a hardcoded slug we don't know) keeps the middleware DB-free.
   if (isAuthRoute && hasSession) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   // 2. Protected routes require a session cookie.
@@ -59,7 +78,7 @@ export function middleware(request: NextRequest) {
   }
 
   if (isOnboardingRoute && hasSession && hasActiveOrg) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   return NextResponse.next();
@@ -69,8 +88,9 @@ export const config = {
   matcher: [
     "/login",
     "/signup",
-    "/dashboard/:path*",
     "/onboarding/:path*",
     "/settings/:path*",
+    "/:orgSlug/dashboard/:path*",
+    "/:orgSlug/m/:path*",
   ],
 };

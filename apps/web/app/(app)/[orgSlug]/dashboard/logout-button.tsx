@@ -1,10 +1,13 @@
 "use client";
 
-// apps/web/app/(app)/dashboard/logout-button.tsx
+// apps/web/app/(app)/[orgSlug]/dashboard/logout-button.tsx
 //
 // Client component carved out of the Server-Component dashboard so the
 // sign-out interaction can run in the browser without forcing the whole page
 // to ship to the client.
+//
+// Moved from `apps/web/app/(app)/dashboard/logout-button.tsx` as part of
+// T1.1 — the dashboard now lives under the tenant-scoped `[orgSlug]` segment.
 
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";

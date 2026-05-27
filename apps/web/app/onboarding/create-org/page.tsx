@@ -63,14 +63,17 @@ export default function CreateOrgPage() {
     }
 
     try {
-      await createOrg.mutateAsync({
+      const result = await createOrg.mutateAsync({
         name: parsed.data.name,
         slug: parsed.data.slug,
       });
       // Force `whoami` (and any other authed query) to refetch so the next
       // server-rendered page sees the new active org.
       await utils.invalidate();
-      router.push("/dashboard");
+      // The mutation returns the canonical slug — use it directly rather than
+      // `parsed.data.slug` (defensive: the server is the source of truth for
+      // the slug, in case any normalization happened along the way).
+      router.push(`/${result.slug}/dashboard`);
     } catch (err) {
       // tRPC client errors expose `data.code` on the structured payload.
       const code =

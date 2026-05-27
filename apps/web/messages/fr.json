@@ -73,6 +73,32 @@
     "logout": "Se déconnecter",
     "logoutLoading": "Déconnexion en cours…"
   },
+  "app": {
+    "sidebar": {
+      "ariaLabel": "Navigation principale",
+      "dashboard": "Tableau de bord",
+      "modulesSection": "Modules",
+      "noModules": "Aucun module activé. Allez dans Paramètres pour en activer."
+    },
+    "topbar": {
+      "expandSidebar": "Déplier la barre latérale",
+      "collapseSidebar": "Replier la barre latérale",
+      "orgSwitcherAria": "Organisation active : {name}. Cliquez pour changer.",
+      "orgSwitcherLabel": "Vos organisations",
+      "userMenuAria": "Menu utilisateur",
+      "logout": "Se déconnecter",
+      "logoutLoading": "Déconnexion en cours…",
+      "loading": "Chargement…"
+    },
+    "module": {
+      "inactive": {
+        "title": "{name} n'est pas activé",
+        "body": "Activez ce module pour y accéder. Vous pourrez le désactiver à tout moment depuis vos paramètres de facturation.",
+        "cta": "Aller à la facturation"
+      },
+      "placeholder": "Module en cours de développement"
+    }
+  },
   "settings": {
     "billing": {
       "title": "Facturation",

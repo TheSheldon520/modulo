@@ -9,6 +9,6 @@
       "@/*": ["./*"]
     }
   },
-  "include": ["components/**/*.ts", "components/**/*.tsx", "lib/**/*.ts"],
+  "include": ["components/**/*.ts", "components/**/*.tsx", "lib/**/*.ts", "lib/**/*.test.ts", "vitest.config.ts"],
   "exclude": ["node_modules", "dist", ".turbo"]
 }

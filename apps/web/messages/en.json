@@ -73,6 +73,32 @@
     "logout": "Sign out",
     "logoutLoading": "Signing out…"
   },
+  "app": {
+    "sidebar": {
+      "ariaLabel": "Primary navigation",
+      "dashboard": "Dashboard",
+      "modulesSection": "Modules",
+      "noModules": "No module enabled. Head to Settings to activate one."
+    },
+    "topbar": {
+      "expandSidebar": "Expand sidebar",
+      "collapseSidebar": "Collapse sidebar",
+      "orgSwitcherAria": "Active organization: {name}. Click to switch.",
+      "orgSwitcherLabel": "Your organizations",
+      "userMenuAria": "User menu",
+      "logout": "Sign out",
+      "logoutLoading": "Signing out…",
+      "loading": "Loading…"
+    },
+    "module": {
+      "inactive": {
+        "title": "{name} is not enabled",
+        "body": "Activate this module to access it. You can disable it at any time from your billing settings.",
+        "cta": "Go to billing"
+      },
+      "placeholder": "Module under development"
+    }
+  },
   "settings": {
     "billing": {
       "title": "Billing",
