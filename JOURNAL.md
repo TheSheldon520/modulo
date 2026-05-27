@@ -8,6 +8,51 @@
 
 ---
 
+## 📅 2026-05-27 — Session 9 — T1.0 polish dette critique Phase 0
+
+### 🎯 Objectif de la session
+Premier ticket Phase 1 : éliminer 2 dettes critiques bloquantes pour le dogfooding et la démo (cookie staleness post-login + pattern UX disable submit pendant mutation). 2 commits atomiques exigés par Chris (Chantier A et B séparés).
+
+### ✅ Tickets terminés
+- **T1.0** — Polish dette critique Phase 0 (Chantiers A + B en 2 commits atomiques). Détail :
+  - **T1.0a (commit `e8b9fda`)** — Fix cookie staleness post-login. Hook Better Auth `databaseHooks.session.create.after` ajouté dans `packages/auth/src/index.ts` (à l'intérieur de la factory `createAuth()`, pattern Session 8 préservé). Helper `resolveActiveOrgForUser(db, userId)` isolé dans `packages/auth/src/active-org.ts` (query Drizzle `ORDER BY memberships.created_at DESC LIMIT 1` — la plus récente pour le cas multi-org) + helpers `ACTIVE_ORG_COOKIE_NAME` et `getActiveOrgCookieOptions()` (attributs strictement identiques à `buildActiveOrgCookie` côté tRPC, 6/6 match vérifié par reviewer). 3 tests Vitest sur le helper (1/N/0 memberships). Mini-fix dep `drizzle-orm@0.38.3` déplacée de `devDependencies` → `dependencies` (sémantiquement correct, c'est une dep runtime de `active-org.ts`). Validation visuelle Chris : S1 signup neuf → /create-org OK, S2 login email/pwd user existant → /dashboard direct OK (= bug bisecté Session 8 corrigé), S3 GitHub OAuth → /dashboard direct OK, S5 logout + re-login → /dashboard direct OK. Bonus multi-org : la plus récente correctement sélectionnée.
+  - **T1.0b (commit `46c81dd`)** — Pattern UX `<SubmitButton />` + applications. Composant `packages/ui/components/submit-button.tsx` (forwardRef, étend strictement `ButtonProps`, ajoute `isLoading` + `loadingLabel`, spinner `<Loader2 className="size-4 animate-spin" />`, `aria-busy={showSpinner}` aligné sémantiquement). **Logique pure isolée** dans `packages/ui/lib/submit-button-state.ts` (zéro JSX) → testable depuis `apps/web/lib/submit-button.test.ts` (6 tests Vitest) sans installer jsdom dans `packages/ui` (qui n'a pas l'infra). Sub-export `./lib/submit-button-state` ajouté dans `packages/ui/package.json` (cohérent avec le précédent `./lib/utils`). Applications aux 3 mutations cibles : `organizations.create` (page onboarding), `billing.createCheckoutSession` (cards modules), `billing.createPortalSession` (bouton portail + `type="button"` ajouté post-review pour cohérence convention repo). Section "SubmitButton" ajoutée dans `/styleguide` (5 démos couvrant variants default/destructive/outline avec/sans `loadingLabel`). Règle 5 ajoutée dans `CLAUDE.md` section "⚛️ React / Next.js" : convention non négociable.
+
+### 🧠 Décisions structurantes prises
+- **Hook BA `databaseHooks.session.create.after` = point unique transverse providers** : couvre TOUS les sign-in (email/pwd + OAuth GitHub + futurs OAuth Google etc.) sans énumération. Pattern à reproduire pour toute logique transverse aux providers BA (futur : analytics login, audit log, populate user preferences au premier sign-in, etc.).
+- **Pattern "logique pure isolée" pour packages sans infra de test** : extraire la logique testable dans une lib TypeScript pur (zéro JSX), garder le `.tsx` comme thin wrapper. Cohérent avec `requireEnv` extrait dans `env.ts` et factories Zod `make{Login,Signup,CreateOrg}Schema(t)`. Exemple canonique : `packages/ui/lib/submit-button-state.ts` testé depuis `apps/web`. À reproduire pour tout futur composant complexe qui ne justifie pas de monter jsdom dans `packages/ui`.
+- **Convention `<SubmitButton isLoading={mutation.isPending}>` NON NÉGOCIABLE** pour toute mutation tRPC. Documentée `CLAUDE.md` section React/Next règle 5. Tout PR Phase 1+ doit la respecter — interdiction d'utiliser un `<Button>` nu pour une mutation. Code-reviewer doit flagger en Critical.
+- **Edge case `asChild + isLoading` ignoré silencieusement** plutôt que throw runtime (Radix Slot incompatible avec spinner injecté dans un children arbitraire). `effectiveLoading = isLoading && !asChild`. Documenté JSDoc. `aria-busy={showSpinner}` (pas `isLoading` brut) pour cohérence a11y — fix appliqué post-review.
+- **Helper `getActiveOrgCookieOptions()` + constante `ACTIVE_ORG_COOKIE_NAME` extraits dans `packages/auth/src/active-org.ts`** pour réutilisabilité future. Aujourd'hui **dette DRY consciente** : `packages/api/src/trpc.ts` redéclare encore `ACTIVE_ORG_COOKIE` + `ACTIVE_ORG_COOKIE_MAX_AGE` (valeurs identiques 6/6, tracée par commentaire). Sub-export `./active-org` à ajouter dans `packages/auth/package.json` quand on factorisera (ticket Phase 1 TBD).
+- **Workaround Windows "pnpm dev direct dans `apps/web`"** quand Turbo plante silencieusement (cas observé Session 9 : Turbo capture stdout et ne forward pas le `Ready in X.Xs`, serveur quitte). `cd apps/web && pnpm dev` bypasse Turbo et permet de débugger. Pas un fix définitif, workaround pratique à garder en mémoire.
+- **Méthode "bisect en live" sur incertitude diagnostic** : quand un test visuel échoue pendant la validation d'un ticket (Chantier A ici, suspect sur le hook BA), réflexe `git stash push -u` + `git checkout <commit-précédent>` + reproduce + `git stash pop` permet de prouver en 5 minutes si le bug est nouveau ou pré-existant. À enforcer systématiquement avant de basculer en mode debug profond — évite les fausses pistes coûteuses. Utilisé Session 9 pour confirmer que le bug cookie staleness venait bien de T0.8 (commit `b7d9a13`) et pas de la refacto getAuth Vague 1 T0.10.
+
+### ⚠️ Points d'attention pour les prochaines sessions
+- **Dette DRY tracée** : `trpc.ts` redéclare `ACTIVE_ORG_COOKIE` + `MAX_AGE` au lieu d'importer depuis `@modulo/auth/active-org`. Sub-export à ajouter dans `packages/auth/package.json` quand on factorisera (ticket Phase 1 TBD).
+- **Edge case Windows ports** : `pnpm dev` bascule sur 3001 si 3000 zombie. Réflexe : `taskkill /F /IM node.exe` avant `pnpm dev` pour rester sur 3000, OU `Get-NetTCPConnection -LocalPort 3000` pour identifier le PID.
+- **Turbo + Windows fragile** : si serveur dev quitte silencieusement, bypasser Turbo via `cd apps/web && pnpm dev`. Pas un fix définitif, juste un workaround pratique.
+- **Convention `<SubmitButton />` à enforcer** sur tous les futurs forms Phase 1+. Code-reviewer doit flagger un `<Button>` nu sur une mutation comme **Critical**.
+- **`asChild + isLoading` silent ignore** : si un dev se fait piéger (spinner attendu mais pas affiché), `console.warn` dev-only à considérer. Aujourd'hui JSDoc seul — acceptable vu la rareté du cas.
+- **Rappels reportés des sessions précédentes** (encore valides) :
+  - ✅ ~~Cookie staleness post-login~~ **FIXÉ T1.0a**
+  - `NEXT_PUBLIC_BETTER_AUTH_URL` avant staging
+  - Skeleton / error states `/settings/billing`
+  - Tests d'intégration webhook (testcontainers ou Neon branches)
+  - Refacto 5 webhook handlers (~65% duplication) — helpers `validateOrgExists` + `updateModuleBySubscription`
+  - `stripeCustomerId` atomicité (table `organizations_billing` dédiée)
+  - Découpage `@modulo/auth-server` / `@modulo/auth-client` si worker server-only émerge
+
+### 🚧 En cours / pas fini
+Aucun chantier de code ouvert. Working tree propre après les 2 commits T1.0 (`e8b9fda` + `46c81dd`). T1.0 officiellement clôturé en 2 commits atomiques.
+
+### 🔜 Prochain ticket
+- **T1.1 — Shell multi-tenant** (anciennement T0.8, reporté Phase 1 par décision T0.10). Routes `/(app)/[orgSlug]/*` avec résolution org via slug, sidebar dynamique listant les modules activés, topbar (switcher d'org, avatar user, command palette Cmd+K), layout qui injecte les CSS vars du thème de l'org. Justification de la priorité : `/dashboard` plat suffisait pour Phase 0, mais le shell devient nécessaire dès qu'on monte le premier module (`/(app)/[orgSlug]/m/sales/*` en T1.2).
+
+### 💬 Notes libres
+Session courte mais dense : 2 commits atomiques propres, 2 audits `/review-before-commit` (T1.0a et T1.0b), 3 fixes post-review au total (mini-fix dep `drizzle-orm` dev→deps + a11y `aria-busy` + défense en profondeur `type="button"`), 1 décision technique forte (lib pure isolée pour contourner l'absence d'infra Vitest dans `packages/ui`), 1 convention non négociable posée dans `CLAUDE.md`. Phase 1 officiellement démarrée — premier ticket bouclé proprement. Le pattern `<SubmitButton />` sera réutilisé dans tous les forms Sales Analytics (T1.3+ CRUD deals/contacts).
+
+---
+
 ## 📅 2026-05-27 — Session 8 — T0.10 + clôture Phase 0
 
 ### 🎯 Objectif de la session
