@@ -8,6 +8,50 @@
 
 ---
 
+## 📅 2026-05-27 — Session 8 — T0.10 + clôture Phase 0
+
+### 🎯 Objectif de la session
+Boucler la Phase 0 en éliminant la dette consciente accumulée pendant T0.5 → T0.9 (refactos lazy, trous webhook, hardening prod, cleanup legacy, réconciliation doc) sans introduire de nouvelle complexité. Tout en 1 commit.
+
+### ✅ Tickets terminés
+- **T0.10** — Hardening + refactos pré-Phase 1 (clôt Phase 0). Découpé en **4 vagues séquentielles + 1 sous-tâche bonus** par l'orchestrator, validation visuelle imposée entre Vague 1 (refacto auth) et Vague 2. Détail :
+  - **Vague 1** : `@modulo/auth` eager → `getAuth()` factory lazy avec cache `globalThis.__moduloAuth` (pattern identique `getDb()`). 5 call-sites migrés (`auth/index.ts`, `api/trpc.ts`, `api/auth/[...all]/route.ts`, `dashboard/page.tsx`, `vitest.config.ts`). Suppression complète de `packages/api/src/test-setup.ts` (plus aucune env factice au test runner). `registry.test.ts` ajusté avec scope local `STRIPE_PRICE_*` via `beforeAll/afterAll`. Validation visuelle live : login email/pwd + GitHub OAuth + logout + cookie cleanup OK.
+  - **Vague 2** : helper pur `mapStripeStatusToModuleStatus(Stripe.Subscription.Status): ModuleStatus` colocated avec le webhook (`_helpers.ts`) + 8 tests unitaires couvrant les 8 statuts Stripe → 4 statuts modulo. Type `ModuleStatus` exporté pour la première fois depuis `packages/db/schema/billing.ts` (`typeof moduleStatusEnum.enumValues[number]`, source de vérité = pgEnum). Case `customer.subscription.updated` ajouté au switch du webhook handler avec pattern strictement identique aux 4 handlers T0.9 (idempotency, transaction, pre-flight SELECT org, warn structuré).
+  - **Vague 3** : guards `process.env.NODE_ENV !== "development"` sur `/healthcheck` (via Server Component wrapper `layout.tsx` car la page elle-même est Client) et `/styleguide`. 4 tokens sémantiques `*-muted` ajoutés (OKLCH ~0.30-0.32 lightness, chroma ~0.04-0.06) avec mapping `@theme inline` Tailwind v4 + paragraphe DESIGN_SYSTEM.md §5 "muted vs /10". Suppression `packages/config/tailwind-preset/index.ts` legacy v3 remplacé par un `index.d.ts` ambient minimal (déclare le module CSS `/theme`, package désormais CSS-only).
+  - **Sous-tâche bonus 3.4** : fix `useSearchParams()` Suspense boundary sur `/settings/billing` (régression T0.9 qui cassait `pnpm build`). Extraction en sous-composant `BillingToastWatcher` qui rend `null`, wrapping `<Suspense fallback={null}>`. Build prod désormais propre, `/settings/billing` en `○ Static`.
+  - **Vague 4** : réconciliation doc complète. ROADMAP restructurée (note de réconciliation header Phase 0 + T0.6.5 i18n inséré + T0.8 reporté Phase 1 + T0.8.5 onboarding strict ajouté + T0.9 reformulé Stripe + T0.10 reformulé hardening). ARCHITECTURE §3 aligné sur le code réel (uuid+uuidv7, timestamptz, pgEnum module_status, table stripe_webhook_events). MODULE_BLUEPRINT:55 corrigé (process.env.X! → getter lazy requireEnv). CLAUDE.md augmenté d'une sous-section "🏭 Factory pattern pour les clients externes".
+  - **3 fixes post-review** : commentaire inline dans `subscription.updated` documentant le choix de ne pas ajouter `AND organization_id` (cohérence T0.9, refacto dette Phase 1) + `enabledAt`/retrait `updatedAt` dans ARCHITECTURE.md (mes erreurs Vague 4) + commentaire `any` → `unknown` dans `billing.ts`. Commit `7e5fde7`.
+
+### 🧠 Décisions structurantes prises
+- **Factory pattern systématique pour les clients externes** : tout client tiers (DB, Auth, Stripe, futurs SDKs) s'expose via une fonction `getXxx()` lazy avec cache `globalThis`. Zéro side-effect d'import, compatible HMR Next, instance créée au premier usage réel. `getDb()` et `getAuth()` deviennent les exemples canoniques. Documenté dans CLAUDE.md. À reproduire en T1.X.
+- **`ModuleStatus` exporté depuis le pgEnum Drizzle** : `typeof moduleStatusEnum.enumValues[number]`. Source de vérité unique = schéma DB, pas de duplication entre webhook handler / UI / tests. Pattern à reproduire pour tout enum métier en Phase 1.
+- **Helper colocated tant qu'il y a un seul consommateur** : `_helpers.ts` resté dans `apps/web/app/api/webhooks/stripe/` plutôt que promu en `packages/api/src/billing/`. YAGNI — déplacement trivial si un second consommateur émerge. Principe à appliquer par défaut Phase 1.
+- **`Stripe.Subscription.Status` direct depuis le SDK** : pas de type maison à dupliquer (qui divergerait silencieusement si Stripe ajoute un statut). Le compilateur signale la divergence au point d'utilisation via le `default` exhaustif avec `_exhaustiveCheck: never`. Pattern à reproduire pour toute intégration SDK externe (Inngest, Resend, Anthropic, etc.).
+- **Guard `NODE_ENV !== "development"`** (pas `=== "production"`) : safe default — refuse l'accès si `NODE_ENV` est `undefined`, `"test"`, `"preview"`, etc. Next garantit `NODE_ENV` défini dans tous ses runtimes. Pattern uniformisé sur `/healthcheck` et `/styleguide`, à appliquer pour toute future page dev-only.
+- **`pnpm build` désormais étape obligatoire de `/review-before-commit`** : la régression T0.9 sur `useSearchParams` n'aurait pas été détectée sans `pnpm build`. Le typecheck/lint/test ne suffisent pas — le build prod a sa propre passe de prerender CSR. Skill `/review-before-commit` à étendre.
+
+### ⚠️ Points d'attention pour les prochaines sessions
+- **Cookie staleness post-login bisecté en live** pendant la validation visuelle Vague 1 — confirmé comme **bug pré-existant T0.8** (déjà documenté Sessions 6 et 7). Pas une régression T0.10. Solution Phase 1 : pré-populer cookie au sign-in via BA hook OU basculer `/dashboard` en server-side check DB (abandon du fast-path cookie).
+- **Dette Phase 1 trackée** : (1) refacto 5 webhook handlers (~65% duplication, helpers `validateOrgExists` + `updateModuleBySubscription`) ; (2) `listAvailableModules()` invoque tous les getters lazy via `Object.values(MODULES)` — lazy partiellement défait, à reconsidérer (`getStripePriceId(slug)`) ; (3) `packages/auth/package.json` peer dep React (à découper en `@modulo/auth-server` / `@modulo/auth-client` si un worker server-only émerge) ; (4) `stripeCustomerId` non atomique (table `organizations_billing` dédiée avec upsert) ; (5) UX disable submit côté forms billing pendant la mutation Stripe.
+- **Rappels reportés des sessions précédentes** (encore valides) : `NEXT_PUBLIC_BETTER_AUTH_URL` avant staging · tokens dataviz `--chart-*` en T1.4 · démo `sonner` (✅ faite côté billing T0.9) · README packages partagés Phase 1 · tests d'intégration webhook (testcontainers ou Neon branches) · script `pnpm module:new` (T0.10 original reporté Phase 1).
+
+### 🚧 En cours / pas fini
+Aucun chantier de code ouvert. Working tree propre après le commit T0.10 (`7e5fde7`). **Phase 0 officiellement clôturée — 8 sessions, 10 tickets (T0.1 → T0.10), ~10 jours calendaires depuis l'init du repo.**
+
+### 🔜 Prochain ticket
+- **T1.0 — Polish dette critique Phase 0** (à créer en début Phase 1). Premier ticket pour traiter 2 dettes bloquantes pour le dogfooding et la démo :
+  (a) Fix cookie staleness post-login bisecté en Session 8 — user existant + logout/re-login → bounce `/create-org`. Solution candidate : pré-populer cookie `modulo-active-org` via Better Auth hook `onSignIn` OU abandonner le fast-path cookie au profit d'un server-side check DB dans `createTRPCContext`.
+  (b) Pattern UX disable submit pendant mutation sur forms billing et `organizations.create` (409 Conflict observé V1 sur double-clic). Convention à généraliser : tout bouton submit lié à une mutation tRPC = `disabled` + label loading pendant `isPending`.
+
+- **T1.1 — Shell multi-tenant** (anciennement T0.8, reporté Phase 1). Routes `/(app)/[orgSlug]/*` avec résolution org via slug, sidebar dynamique listant les modules activés, topbar (switcher d'org, avatar user, command palette Cmd+K), layout qui injecte les CSS vars du thème de l'org. Justification de la priorité : `/dashboard` plat suffisait pour Phase 0 (1 org, 0 module), mais le shell devient nécessaire dès qu'on monte le premier module (`/(app)/[orgSlug]/m/sales/*`).
+
+- **T1.2 — Scaffold du module Sales Analytics**. `pnpm module:new sales-analytics` (créer le script si pas fait), `module.config.ts` (icône BarChart3, pricing 29€, scopes, navigation), apparition dans `/settings/modules`, activation → entrée sidebar + page placeholder.
+
+### 💬 Notes libres
+**Phase 0 à 100 %.** Session marathon mais maîtrisée : 4 vagues séquentielles + 1 sous-tâche bonus + 1 audit complet + 3 fixes post-review, le tout en un seul commit propre. Discipline orchestrator : briefs ultra-détaillés aux sub-agents, STOP forcé entre Vague 1 et Vague 2 pour validation visuelle Chris, audit reviewer challengé honnêtement (1 Important downgradé à Nit après analyse cohérence T0.9). Le pattern factory `getXxx()` validé en Vague 1 sera la fondation de toutes les intégrations SDK externes en Phase 1. Premier sprint Phase 1 conseillé : T1.0 polish dette → T1.1 shell multi-tenant → T1.2 scaffold Sales Analytics.
+
+---
+
 ## 📅 2026-05-27 — Session 7 — Billing Stripe + activation modules
 
 ### 🎯 Objectif de la session
