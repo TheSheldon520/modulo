@@ -218,7 +218,7 @@ export function NewDealDialog({ ownerId, newDealLabel }: NewDealDialogProps) {
             onClick={handleClose}
             disabled={createDeal.isPending}
           >
-            Annuler
+            {t("dialogs.newDeal.cancel")}
           </Button>
           {/* Convention T1.0b CLAUDE.md §5 — toute mutation passe par SubmitButton */}
           <SubmitButton

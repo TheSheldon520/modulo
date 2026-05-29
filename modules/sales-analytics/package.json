@@ -8,7 +8,9 @@
     "./schema": "./schema.ts",
     "./schemas": "./schemas.ts",
     "./config": "./module.config.ts",
-    "./lib/period": "./lib/period.ts"
+    "./lib/period": "./lib/period.ts",
+    "./lib/period-presets": "./lib/period-presets.ts",
+    "./lib/stages": "./lib/stages.ts"
   },
   "files": [
     "module.config.ts",
@@ -16,6 +18,8 @@
     "schemas.ts",
     "router.ts",
     "lib/period.ts",
+    "lib/period-presets.ts",
+    "lib/stages.ts",
     "README.md"
   ],
   "scripts": {

@@ -2,15 +2,17 @@
 //
 // Server Component — no "use client" needed. Reads the session once (via
 // getAuth()) and passes `ownerId` as a prop to the Client Component
-// <NewDealDialog> so the form can pre-fill the field without a client
-// round-trip. The actual data fetching (deals list) happens inside the
-// Client Component <DealsTable> via tRPC useQuery.
+// <DealsView> so the form can pre-fill the field without a client round-trip.
+// The actual data fetching (deals list) happens inside the Client Components
+// (<DealsTable> / <DealsKanban>) via tRPC useQuery.
 //
-// This page sits at a more specific route than the generic
-// /m/[moduleSlug]/page.tsx placeholder, so Next.js will route
-// /[orgSlug]/m/sales/deals here and leave /[orgSlug]/m/sales/* to the
-// placeholder (T1.4 will add an overview at /m/sales).
+// Suspense boundary: <DealsView> uses `useSearchParams()` (Next.js 15 App
+// Router) which requires a Suspense parent. We wrap it here so the Server
+// Component page owns the boundary — if JS is slow the fallback is a plain
+// loading div that mimics the page padding, not a full skeleton (the data
+// skeletons are owned by <DealsKanban> and <DealsTable> themselves).
 
+import { Suspense } from "react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
@@ -39,11 +41,26 @@ export default async function DealsPage({ params }: PageProps) {
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <DealsView
-        ownerId={session.user.id}
-        title={t("title")}
-        newDealLabel={t("newDeal")}
-      />
+      {/*
+        Suspense boundary for useSearchParams() — Next.js 15 requires any
+        Client Component calling useSearchParams() to have a Suspense ancestor.
+        The fallback is intentionally minimal: the data-level skeletons are
+        rendered by <DealsKanban> / <DealsTable> themselves once the shell
+        hydrates.
+      */}
+      <Suspense
+        fallback={
+          <div className="flex flex-col gap-6">
+            <div className="h-9 w-40 animate-pulse rounded-md bg-surface-3" />
+          </div>
+        }
+      >
+        <DealsView
+          ownerId={session.user.id}
+          title={t("title")}
+          newDealLabel={t("newDeal")}
+        />
+      </Suspense>
     </div>
   );
 }

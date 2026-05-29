@@ -17,17 +17,19 @@ import {
 
 import { trpc } from "@/lib/trpc/client";
 import { formatDealAmount, getStageBadgeClasses } from "@/lib/deal-format";
+import type { DealRow } from "./deal-card";
 
 // ---------------------------------------------------------------------------
 // Skeleton (mimics the table layout — no centered spinner per design rules)
 // ---------------------------------------------------------------------------
 
 export function DealsTableSkeleton() {
+  const t = useTranslations("modules.salesAnalytics.deals");
   return (
     <div
       className="w-full overflow-x-auto rounded-lg border border-border-subtle"
       aria-busy="true"
-      aria-label="Chargement des deals…"
+      aria-label={t("table.loading")}
     >
       <table className="w-full caption-bottom text-sm">
         <thead className="[&_tr]:border-b [&_tr]:border-border-subtle">
@@ -99,14 +101,31 @@ function DealsErrorState() {
 }
 
 // ---------------------------------------------------------------------------
+// Props
+// ---------------------------------------------------------------------------
+
+interface DealsTableProps {
+  /**
+   * The filtered deal list from DealsView. `undefined` = loading.
+   * Global empty state (no deals at all) is shown when the array is empty
+   * AND no filters are active. The "filtered empty" case is handled upstream
+   * by DealsView (which never renders DealsTable in that scenario).
+   */
+  filteredDeals: DealRow[] | undefined;
+}
+
+// ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
 
-export function DealsTable() {
+export function DealsTable({ filteredDeals }: DealsTableProps) {
   const t = useTranslations("modules.salesAnalytics.deals");
-  const { data: deals, status } = trpc.salesAnalytics.deals.list.useQuery();
+  // Still subscribe to the query for the error status — filteredDeals are
+  // passed in pre-filtered from DealsView, but we need the raw status to
+  // distinguish "loading" from "empty + filtered".
+  const { status } = trpc.salesAnalytics.deals.list.useQuery();
 
-  if (status === "pending") {
+  if (status === "pending" || filteredDeals === undefined) {
     return <DealsTableSkeleton />;
   }
 
@@ -114,7 +133,7 @@ export function DealsTable() {
     return <DealsErrorState />;
   }
 
-  if (deals.length === 0) {
+  if (filteredDeals.length === 0) {
     return <DealsEmptyState />;
   }
 
@@ -134,7 +153,7 @@ export function DealsTable() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {deals.map((deal) => (
+          {filteredDeals.map((deal) => (
             <TableRow key={deal.id}>
               <TableCell className="font-medium text-text-primary">
                 {deal.name}

@@ -198,7 +198,12 @@
         "empty": {
           "title": "No deals yet",
           "description": "Create your first deal to get started.",
-          "cta": "New deal"
+          "cta": "New deal",
+          "filtered": {
+            "title": "No deals match the active filters",
+            "description": "Try adjusting or resetting the filters to see more deals.",
+            "cta": "Reset filters"
+          }
         },
         "columns": {
           "name": "Name",
@@ -212,6 +217,25 @@
           "proposal": "Proposal",
           "won": "Won",
           "lost": "Lost"
+        },
+        "view": {
+          "groupAriaLabel": "View",
+          "kanban": "Kanban",
+          "table": "Table"
+        },
+        "kanban": {
+          "loading": "Loading kanban…",
+          "column": {
+            "empty": "No deals"
+          },
+          "noOwner": "No owner",
+          "dragSuccess": "Deal moved",
+          "dragError": "Failed to move deal",
+          "undo": "Undo",
+          "cardOwnerLabel": "Owner: {name}"
+        },
+        "table": {
+          "loading": "Loading deals…"
         },
         "error": {
           "loadingFailed": "Failed to load deals. Please refresh the page."
@@ -228,6 +252,7 @@
             },
             "submit": "Create deal",
             "submitting": "Creating…",
+            "cancel": "Cancel",
             "success": "Deal created",
             "error": "Failed to create deal",
             "errors": {
@@ -235,6 +260,67 @@
               "nameTooLong": "Name is too long (200 characters max)",
               "amountInvalid": "Enter a valid amount (e.g. 1500 or 1500.50)"
             }
+          }
+        },
+        "filters": {
+          "ariaLabel": "Deal filters",
+          "period": {
+            "label": "Period",
+            "all": "All time",
+            "7d": "7d",
+            "30d": "30d",
+            "90d": "90d",
+            "ytd": "YTD"
+          },
+          "amount": {
+            "minLabel": "Min amount (€)",
+            "maxLabel": "Max amount (€)",
+            "minPlaceholder": "0",
+            "maxPlaceholder": "∞"
+          },
+          "owner": {
+            "label": "Owner",
+            "all": "All owners"
+          },
+          "reset": "Reset",
+          "resetAria": "Reset all filters"
+        },
+        "sidePanel": {
+          "title": "Deal details",
+          "description": "Edit deal information.",
+          "fields": {
+            "name": "Name",
+            "amount": "Amount (€)",
+            "stage": "Stage",
+            "contact": "Contact",
+            "noContact": "No contact",
+            "owner": "Owner",
+            "createdAt": "Created",
+            "updatedAt": "Updated",
+            "closedAt": "Closed",
+            "closedAtNull": "—"
+          },
+          "actions": {
+            "save": "Save",
+            "saving": "Saving…",
+            "cancel": "Cancel",
+            "delete": "Delete",
+            "deleting": "Deleting…",
+            "saveSuccess": "Deal updated",
+            "saveError": "Failed to save",
+            "deleteSuccess": "Deal deleted",
+            "deleteError": "Failed to delete"
+          },
+          "deleteConfirm": {
+            "title": "Delete deal",
+            "description": "Delete deal \"{name}\"? This action cannot be undone.",
+            "cancel": "Cancel",
+            "confirm": "Delete"
+          },
+          "errors": {
+            "nameRequired": "Name is required",
+            "nameTooLong": "Name is too long (200 characters max)",
+            "amountInvalid": "Invalid amount (positive, max 2 decimal places)"
           }
         }
       }

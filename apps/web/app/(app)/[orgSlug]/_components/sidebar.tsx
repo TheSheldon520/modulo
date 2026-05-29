@@ -140,11 +140,19 @@ export function Sidebar({ orgSlug, modules, collapsed, userRole }: SidebarProps)
                     <div className="ml-2 mt-0.5 flex flex-col gap-0.5 border-l border-border-subtle pl-3">
                       {visibleNavItems.map((item) => {
                         const fullHref = `/${orgSlug}${item.href}`;
-                        // Active if exact match or pathname starts with the href
-                        // (handles nested routes like /m/sales/deals/123)
-                        const isActive =
-                          pathname === fullHref ||
-                          pathname.startsWith(fullHref + "/");
+                        // T1.5 — exact match only. All module sub-pages are
+                        // distinct flat routes (/m/sales, /m/sales/deals,
+                        // /m/sales/performance, /m/sales/settings) so an
+                        // exact match is unambiguous and prevents the parent
+                        // item ("Vue d'ensemble" at /m/sales) from staying
+                        // highlighted when navigating to /m/sales/deals.
+                        // The ?view= toggle does NOT change the pathname, so
+                        // table↔kanban toggle doesn't break the active state.
+                        // Refinement: if a future item needs deep sub-routes
+                        // (e.g. /m/sales/deals/[id]) re-introduce
+                        // `|| pathname.startsWith(fullHref + "/")` only for
+                        // that specific non-index item.
+                        const isActive = pathname === fullHref;
                         const IconComponent = resolveIcon(item.icon);
 
                         return (

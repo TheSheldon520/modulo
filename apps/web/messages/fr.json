@@ -198,7 +198,12 @@
         "empty": {
           "title": "Aucun deal pour le moment",
           "description": "Créez votre premier deal pour commencer.",
-          "cta": "Nouveau deal"
+          "cta": "Nouveau deal",
+          "filtered": {
+            "title": "Aucun deal ne correspond aux filtres",
+            "description": "Essayez d'ajuster ou de réinitialiser les filtres pour voir plus de deals.",
+            "cta": "Réinitialiser les filtres"
+          }
         },
         "columns": {
           "name": "Nom",
@@ -212,6 +217,25 @@
           "proposal": "Proposition",
           "won": "Gagné",
           "lost": "Perdu"
+        },
+        "view": {
+          "groupAriaLabel": "Vue",
+          "kanban": "Kanban",
+          "table": "Tableau"
+        },
+        "kanban": {
+          "loading": "Chargement du kanban…",
+          "column": {
+            "empty": "Aucun deal"
+          },
+          "noOwner": "Sans propriétaire",
+          "dragSuccess": "Deal déplacé",
+          "dragError": "Échec du déplacement",
+          "undo": "Annuler",
+          "cardOwnerLabel": "Propriétaire : {name}"
+        },
+        "table": {
+          "loading": "Chargement des deals…"
         },
         "error": {
           "loadingFailed": "Impossible de charger les deals. Veuillez rafraîchir la page."
@@ -228,6 +252,7 @@
             },
             "submit": "Créer le deal",
             "submitting": "Création en cours…",
+            "cancel": "Annuler",
             "success": "Deal créé",
             "error": "Erreur lors de la création",
             "errors": {
@@ -235,6 +260,67 @@
               "nameTooLong": "Le nom est trop long (200 caractères max)",
               "amountInvalid": "Entrez un montant valide (ex: 1500 ou 1500.50)"
             }
+          }
+        },
+        "filters": {
+          "ariaLabel": "Filtres deals",
+          "period": {
+            "label": "Période",
+            "all": "Tout",
+            "7d": "7j",
+            "30d": "30j",
+            "90d": "90j",
+            "ytd": "YTD"
+          },
+          "amount": {
+            "minLabel": "Montant min (€)",
+            "maxLabel": "Montant max (€)",
+            "minPlaceholder": "0",
+            "maxPlaceholder": "∞"
+          },
+          "owner": {
+            "label": "Propriétaire",
+            "all": "Tous les propriétaires"
+          },
+          "reset": "Réinitialiser",
+          "resetAria": "Réinitialiser tous les filtres"
+        },
+        "sidePanel": {
+          "title": "Détails du deal",
+          "description": "Modifiez les informations du deal.",
+          "fields": {
+            "name": "Nom",
+            "amount": "Montant (€)",
+            "stage": "Étape",
+            "contact": "Contact",
+            "noContact": "Aucun contact",
+            "owner": "Propriétaire",
+            "createdAt": "Créé le",
+            "updatedAt": "Modifié le",
+            "closedAt": "Fermé le",
+            "closedAtNull": "—"
+          },
+          "actions": {
+            "save": "Enregistrer",
+            "saving": "Enregistrement…",
+            "cancel": "Annuler",
+            "delete": "Supprimer",
+            "deleting": "Suppression…",
+            "saveSuccess": "Deal mis à jour",
+            "saveError": "Erreur lors de l'enregistrement",
+            "deleteSuccess": "Deal supprimé",
+            "deleteError": "Erreur lors de la suppression"
+          },
+          "deleteConfirm": {
+            "title": "Supprimer le deal",
+            "description": "Supprimer le deal « {name} » ? Cette action est irréversible.",
+            "cancel": "Annuler",
+            "confirm": "Supprimer"
+          },
+          "errors": {
+            "nameRequired": "Le nom est requis",
+            "nameTooLong": "Le nom est trop long (200 caractères max)",
+            "amountInvalid": "Montant invalide (positif, max 2 décimales)"
           }
         }
       }

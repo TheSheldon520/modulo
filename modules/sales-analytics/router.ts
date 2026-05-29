@@ -25,6 +25,8 @@ import { z } from "zod";
 import { moduleProcedure } from "@modulo/api/procedures";
 import { router } from "@modulo/api/trpc";
 
+import { users } from "@modulo/db/schema";
+
 import {
   salesContacts,
   salesDeals,
@@ -41,6 +43,10 @@ import {
   pipelineStageCreateSchema,
   uuidSchema,
 } from "./schemas";
+// closedAt auto-rule helper — pure isomorphic, no server imports.
+// Encodes: entering won/lost → set closedAt=now() if null (preserve if set);
+// entering open stage → clear closedAt. No stage change → sentinel undefined.
+import { resolveClosedAt } from "./lib/closed-at";
 // Period helpers — pure isomorphic, no server imports. Also exported via the
 // `./lib/period` sub-export so the UI can consume `Period` + `periodSchema`
 // without touching this router barrel.
@@ -73,9 +79,35 @@ const salesAnalyticsProcedure = moduleProcedure("sales-analytics");
 
 const dealsRouter = router({
   list: salesAnalyticsProcedure.query(async ({ ctx }) => {
+    // JOIN on `users` (innerJoin — ownerId is notNull) and `salesContacts`
+    // (leftJoin — contactId is nullable) to enrich deal rows with display names.
+    //
+    // Multi-tenant safety: the WHERE clause scopes by organizationId. The
+    // innerJoin on users.id does NOT leak cross-tenant data because ownerId
+    // is already filtered via the org scope — an org member can only own deals
+    // belonging to that org. Belt + suspenders: moduleProcedure already guards
+    // the org boundary at the middleware level.
     return ctx.db
-      .select()
+      .select({
+        // All salesDeals columns — preserved for backward compat with T1.3 DealsTable
+        id: salesDeals.id,
+        organizationId: salesDeals.organizationId,
+        name: salesDeals.name,
+        stage: salesDeals.stage,
+        amount: salesDeals.amount,
+        ownerId: salesDeals.ownerId,
+        contactId: salesDeals.contactId,
+        closedAt: salesDeals.closedAt,
+        createdAt: salesDeals.createdAt,
+        updatedAt: salesDeals.updatedAt,
+        // Enriched join fields — new for T1.5 Kanban
+        ownerName: users.name,           // string | null (users.name is nullable)
+        contactName: salesContacts.name, // string | null
+        contactCompany: salesContacts.company, // string | null
+      })
       .from(salesDeals)
+      .innerJoin(users, eq(salesDeals.ownerId, users.id))
+      .leftJoin(salesContacts, eq(salesDeals.contactId, salesContacts.id))
       .where(eq(salesDeals.organizationId, ctx.activeOrg.id))
       .orderBy(desc(salesDeals.createdAt));
   }),
@@ -116,7 +148,50 @@ const dealsRouter = router({
       if (rest.amount !== undefined) updateData.amount = rest.amount;
       if (rest.ownerId !== undefined) updateData.ownerId = rest.ownerId;
       if (rest.contactId !== undefined) updateData.contactId = rest.contactId;
-      if (rest.closedAt !== undefined) updateData.closedAt = rest.closedAt;
+
+      // closedAt auto-rule (stage-driven, 1-round-trip strategy):
+      //
+      // Priority 1: if the caller passes an explicit closedAt in the payload
+      //   (e.g. Phase 4 manual date picker), honour it unconditionally.
+      // Priority 2: if the update includes a stage change, apply the auto-rule
+      //   via resolveClosedAt — which requires knowing the CURRENT closedAt to
+      //   preserve it when entering won/lost (S6). We fetch it in a single
+      //   round-trip SELECT before the UPDATE. This is the "2-round-trips"
+      //   variant; chosen over a raw SQL COALESCE expression because Drizzle's
+      //   typed `.set()` does not yet support column-reference expressions in
+      //   SET without resorting to `sql` templates that bypass type-checking.
+      //   For the data volumes involved (<1k deals per org) this is negligible.
+      // Priority 3: if neither, omit closedAt from the SET entirely.
+      if (rest.closedAt !== undefined) {
+        // Explicit caller override — honour as-is (Phase 4 side panel / edit flow)
+        updateData.closedAt = rest.closedAt;
+      } else if (rest.stage !== undefined) {
+        // Stage-driven auto-rule: need the current closedAt to COALESCE correctly.
+        // Multi-tenant: WHERE includes organizationId (belt + suspenders).
+        const [current] = await ctx.db
+          .select({ closedAt: salesDeals.closedAt })
+          .from(salesDeals)
+          .where(
+            and(
+              eq(salesDeals.id, id),
+              eq(salesDeals.organizationId, ctx.activeOrg.id),
+            ),
+          )
+          .limit(1);
+
+        if (!current) {
+          // Deal not found or wrong org — let the main UPDATE surface the 404.
+          // We do nothing here and let the .returning() check below handle it.
+        } else {
+          const resolved = resolveClosedAt(current.closedAt, rest.stage);
+          // resolved === undefined means "no-op" (should not happen here since
+          // rest.stage IS defined, but guard for exhaustiveness)
+          if (resolved !== undefined) {
+            updateData.closedAt = resolved;
+          }
+        }
+      }
+      // If neither explicit closedAt nor stage change: omit from SET entirely.
 
       const [updated] = await ctx.db
         .update(salesDeals)

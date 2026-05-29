@@ -14,6 +14,7 @@
     "clean": "rm -rf .next .turbo"
   },
   "dependencies": {
+    "@dnd-kit/core": "6.3.1",
     "@modulo/api": "workspace:*",
     "@modulo/auth": "workspace:*",
     "@modulo/db": "workspace:*",
