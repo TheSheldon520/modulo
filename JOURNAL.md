@@ -8,6 +8,59 @@
 
 ---
 
+## 📅 2026-05-29 — Session 12 — T1.3 premier CRUD réel Sales Analytics + passage Opus 4.8
+
+### 🎯 Objectif de la session
+Livrer T1.3, le premier vrai code métier de Modulo end-to-end : router tRPC CRUD multi-tenant + page UI deals + seed démo, en 5 phases séquentielles avec checkpoints. Première session sous Claude Opus 4.8 (sorti la veille) — échange préalable sur les nouvelles features (effort control, dynamic workflows) et leur pertinence pour le workflow Modulo.
+
+### ✅ Tickets terminés
+- **T1.3 (commit `4ed8671`)** — Premier CRUD réel Sales Analytics + UI deals + seed démo. **30 fichiers, 3642 insertions / 120 deletions. Plus gros commit du projet à date** (devant T1.2 et ses 3048). Détail des 5 phases :
+  - **Phase 1 — Fix dettes T1.2** : migration `0006_add_pipeline_stage_color` (colonne `color` text nullable sur `sales_pipeline_stages`) + migration `0007_add_deals_org_stage_idx` (index composite `org_stage_idx` sur `sales_deals(organization_id, stage)` pour préparer le Kanban T1.5). Les 2 appliquées sur Neon. Les 2 dettes inline T1.2 retirées.
+  - **Phase 2 — Centralisation type** : `packages/api/src/modules/types.ts` créé (`ModuleConfig` + `NavigationItem` + `RolePermissions`), re-export depuis `packages/api/src/index.ts`, sub-export `./modules/types`. `module.config.ts` du module migré (import type centralisé au lieu du type local). Template `scripts/module-new.ts` aligné.
+  - **Phase 3 — Router tRPC** : router CRUD complet (10 procedures : 4 deals + 4 contacts + 2 pipelineStages) via `moduleProcedure("sales-analytics")`. 5 schemas Zod exportés. `DEAL_STAGES` lowercase strict (5 stages : lead/qualified/proposal/won/lost). Branchement du `salesAnalyticsRouter` dans le root router `packages/api/src/router.ts` (clé `"sales-analytics"`). Defense multi-tenant exhaustive : 10/10 procedures filtrent ou set `organizationId` (belt-and-suspenders).
+  - **Phase 4 — Page UI** : `/[orgSlug]/m/sales/deals` (Server Component prefetch + Suspense), `<DealsTable>` (Client, badges colorés par stage, montants EUR, empty/skeleton/error states), `<NewDealDialog>` (validation Zod `safeParse` avant mutate, `<SubmitButton isLoading>` convention règle 5). Lib pure `deal-format.ts` (+ tests). i18n fr/en mirror. Section styleguide "Sales Stages · badges sémantiques".
+  - **Phase 5 — Seed** : `scripts/seed-sales-demo.ts` (tsx, arg `--org-slug`, idempotent), script `seed:sales` racine. 25 rows seedées sur Chris Onboarding : 5 stages + 5 contacts + 10 deals contexte Silverlit B2B retail (Carrefour, Leclerc, Picwic, Boulanger, JouéClub).
+  - **Fix critique @trpc/server fuite client** : le Client Component `new-deal-dialog.tsx` importait en valeur depuis `router.ts` → tirait `@trpc/server` dans le bundle navigateur → Runtime Error à l'hydratation. **Non détecté par typecheck/lint/build** (garde runtime, pas erreur de compil), attrapé uniquement en validation visuelle navigateur. Fix : extraction des schemas Zod + `DEAL_STAGES` dans `modules/sales-analytics/schemas.ts` (100% isomorphe, zéro import serveur), router importe + ré-exporte, Client Components importent depuis `@modulo/sales-analytics/schemas`. Template `module-new.ts` généralisé pour scaffolder un `schemas.ts` séparé sur tous les futurs modules.
+  - **6 fixes post-review** : (1) badge `qualified` token inexistant `bg-primary/10 text-primary` → `bg-text-tertiary/10 text-text-secondary` (3 endroits), (2) `deal-format.ts` import type `DealStage` depuis `/schemas` (convention), (3) `useState<DealStage>` au lieu de `<string>`, (4) DRY `uuidSchema` importé depuis `schemas.ts`, (5) error state i18n hardcodé → clé `modules.salesAnalytics.deals.error.loadingFailed`, (6) commentaire obsolète `schema.ts` "T1.3 will revisit" → "T1.5+".
+  - **Tests : 68 verts** (49 baseline + schemas Zod + deal-format helpers + badge qualified). `pnpm typecheck` 6/6, `lint` 5/5, `build` propre.
+
+### 🧠 Décisions structurantes prises
+- **Casing `DEAL_STAGES` lowercase strict** (vs PascalCase proposé par l'architect) : **principe valeur persistée ≠ label affiché**. On stocke `"won"`, on affiche "Gagné" via i18n. Le casing d'affichage se gère par les labels next-intl, JAMAIS par la valeur enum stockée. Cohérence avec l'enum BDD lowercase de T1.2 + seed + badges. Principe à généraliser pour tout enum métier affiché.
+- **5 stages strict, "Negotiation" retiré** : respect du brief + YAGNI. Les stages sont conceptuellement destinés à devenir personnalisables par org (table `sales_pipeline_stages`, UI T1.5) — ajouter un stage plus tard = migration enum triviale. Pas d'anticipation.
+- **Pattern "schemas Zod purs isolés du router" = nouvelle convention modules** : les schemas Zod + constantes vivent dans `<module>/schemas.ts` (isomorphe, zéro import serveur). Le router les importe + ré-exporte. Les Client Components importent TOUJOURS depuis `@modulo/<module>/schemas`, jamais depuis `router.ts` (qui tire `@trpc/server`). Évite la fuite serveur dans le bundle client. Généralisé dans le template `module-new.ts`. S'aligne avec la convention "lib pure isolée" déjà établie (T1.0b, T1.1b).
+- **Sub-paths `@modulo/api/trpc` + `@modulo/api/procedures` + `@modulo/api` en `peerDependencies` de sales-analytics** : casse un cycle ES module (appRouter → salesAnalyticsRouter → barrel) + un cycle Turbo. Le module importe via sub-paths, déclare son host en peer dep. Pattern "module-plugin" idiomatique. `WARN cyclic workspace dependencies` pnpm cosmétique non-bloquant.
+- **Type `ModuleConfig` centralisé dans `@modulo/api/modules/types`** : le root router est le vrai consommateur, fin du type local T1.2. Pattern à reproduire pour tout type partagé shell ↔ modules.
+- **Mapping badge stages** : lead=info (bleu), qualified=neutre (`bg-text-tertiary/10 text-text-secondary`), proposal=warning (orange), won=success (vert), lost=danger (rouge). Qualified volontairement neutre (état intermédiaire sans connotation sémantique forte), mais avec fond visible pour cohérence du funnel.
+- **Périmètre T1.3 = Option B étendu en 1 commit atomique** + **seed Drizzle programmatique idempotent** (vs mock ou mutation tRPC) : arbitrages orchestrator tranchés seul (techniques), conformes à la nouvelle convention de délégation.
+
+### ⚠️ Points d'attention pour les prochaines sessions
+- **Empty state "org avec module activé + 0 data" jamais testé visuellement** : aucune 2ème org n'a le module sales-analytics activé (l'org "Chris" affiche "Aucun module activé"). L'empty state EST implémenté dans `deals-table.tsx` (confirmé par le reviewer), à valider visuellement quand une 2ème org activera le module (ou via test d'intégration futur).
+- **Warning hydration `bis_skin_checked` = extension Bitdefender**, PAS notre code (confirmé en navigation privée : zéro erreur). Notre formatage de date est cohérent serveur/client (next-intl). Si le warning réapparaît en navigation normale, c'est l'extension navigateur — ignorer.
+- **Cache `.next` corrompu Windows = symptôme récurrent** : erreur `Cannot find module './XXX.js'` (chunk webpack manquant) + styleguide rendu sans CSS, après une série de modifs/HMR. Fix : `Remove-Item -Recurse -Force apps\web\.next` puis relancer `pnpm dev`. À tracer dans README troubleshooting (2ème occurrence après Session 10).
+- **Validation HTML5 native (`min=0`) masque la validation Zod côté client** dans le dialog deal : les deux coexistent (défense en profondeur), Zod `safeParse` bloque bien la mutation, mais c'est le message HTML natif qui s'affiche en premier. Acceptable, à garder en tête si on veut un message d'erreur custom uniforme plus tard.
+- **Dette T1.4** : page Vue d'ensemble (KPIs) + sidebar sub-items navigation (les nav items du module.config ne sont pas encore consommés par la sidebar).
+- **Dette T1.5** : Kanban drag&drop, édition inline deal, bouton delete UI, page Pipeline stages settings (+ reorder), page Contacts UI, alignement couleurs hex seed → OKLCH.
+- **Rappels reportés (toujours valides)** :
+  - Refacto webhook handlers ~65% duplication + tests d'intégration webhook → **candidat idéal pour un premier essai des dynamic workflows Opus 4.8** (tâche horizontale, multi-fichiers, parallélisable, enjeu modéré). Brief dynamic workflow dédié à préparer le jour où on l'attaque.
+  - Cleanup cookie `modulo-active-org` périmé (Route Handler / middleware)
+  - `CLAUDE.md:84` obsolète (`apps/web/trpc/router.ts` inexistant, vrai = `packages/api/src/router.ts`)
+  - Stripe Price réel sales-analytics à créer dans Stripe Dashboard avant checkout non-test
+  - `NEXT_PUBLIC_BETTER_AUTH_URL` avant staging
+  - Sub-export `./active-org` partiellement consommé (trpc.ts redéclare encore les constantes cookie)
+
+### 🚧 En cours / pas fini
+Aucun chantier de code ouvert. Working tree propre après `4ed8671`. `pnpm dev` sur localhost:3000.
+
+### 🔜 Prochain ticket
+- **T1.4 — Page "Vue d'ensemble" (dashboard Sales Analytics)** : 4 cartes KPI (CA total, Deals gagnés, Taux de conversion, Pipeline value) avec variation + sparkline, graphique CA 12 mois (Recharts area), donut répartition par étape, table "Deals récents", filtres période (7j/30j/90j/YTD/custom). Skeletons sur chargement. En parallèle : brancher les sub-items de navigation du `module.config` dans la sidebar (dette T1.3). Ajout des tokens dataviz `--chart-1..5` dans `colors.css` (reporté depuis Session 3). Le funnel sur 5 stages (avec "lost") permet le calcul du taux de conversion.
+
+### 💬 Notes libres
+Première session sous **Claude Opus 4.8** (sorti 2026-05-28). Échange informatif en ouverture : effort control (défaut high, "extra"/"max" pour tâches dures), dynamic workflows (centaines de sous-agents parallèles, gated Max/Team/Enterprise). **Décision : les 4 sub-agents Claude Code bénéficient automatiquement d'Opus 4.8 (rien à reconfigurer). Dynamic workflows gardés pour les futures tâches horizontales/parallélisables (refacto webhook = premier candidat), pas adoptés sur les tranches verticales à dépendances comme T1.3** où la discipline séquentielle par phases avec checkpoints reste reine. Confusion PATH résolue : Chris utilise l'extension VS Code `anthropic.claude-code` (auto-update), pas le package npm CLI.
+
+T1.3 = plus gros commit du projet (3642 insertions). La session a **prouvé la valeur de la validation visuelle** : 2 bugs runtime (fuite `@trpc/server` + cache `.next` corrompu) invisibles à typecheck/lint/build, attrapés uniquement en chargeant la page navigateur. Le checkpoint qu'on a refusé de sacrifier pour la vitesse a fait son job 2 fois. Méthode bisect (navigation privée) utilisée pour isoler le faux positif hydration. Nouvelle convention de délégation actée : l'orchestrator tranche les décisions techniques seul (casing, stages, périmètre, seed), Chris arbitre produit/stratégique. **Phase 1 à ~67%** (T1.0 → T1.3 livrés, 6 tickets sur ~9). Prochain : T1.4 dashboard, premier dataviz du projet.
+
+---
+
 ## 📅 2026-05-28 — Session 11 — T1.2 premier module métier + IDEAS.md
 
 ### 🎯 Objectif de la session
