@@ -8,6 +8,52 @@
 
 ---
 
+## 📅 2026-05-29 — Session 13 — T1.4 dashboard Sales Analytics (premier dataviz)
+
+### 🎯 Objectif de la session
+Livrer T1.4, le premier dataviz de Modulo. Page Vue d'ensemble du module : 4 KPIs (CA, deals gagnés, taux de conversion, pipeline) + graphe CA 12 mois + donut répartition stages + table deals récents + filtres période. Plus 2 dettes : sidebar sub-items config-driven (T1.3) et tokens dataviz --chart-* (Session 3). Enchaînée directement après Session 12 (T1.3), même jour.
+
+### ✅ Tickets terminés
+- **T1.4 (commit `8dd6976`)** — Dashboard Sales Analytics + dataviz. **31 fichiers, 2686 insertions / 87 deletions.** 5 phases :
+  - **Phase 1** : tokens `--chart-1..5` (OKLCH DESIGN_SYSTEM §7) + mapping `@theme inline` Tailwind v4 + démo styleguide "Chart palette". Seed enrichi : dates étalées sur 12 mois (juin 2025 → mai 2026), 4 won / 2 lost / 4 open, + flag `--reset` (purge avant re-seed) + README. Graphes temporels non plats.
+  - **Phase 2** : procedure `trpc.salesAnalytics.overview` (period 7d/30d/90d/ytd) → KPIs + variation vs période précédente + sparklines + revenueByMonth + stageDistribution + recentDeals. Helpers purs `lib/period.ts` (sub-export `./lib/period`). Agrégations SQL Drizzle (date_trunc, COALESCE, ::float8). 15 tests.
+  - **Phase 3** : `<MetricCard>` (packages/ui, sparkline Recharts + variation arrow + skeleton) + `<RevenueAreaChart>` (gradient OKLCH) + `<StageDonut>` (mapping sémantique stages). Lib pure `sales-overview-format.ts`. recharts@2.13.3 pin exact (packages/ui + apps/web).
+  - **Phase 4** : page `/m/sales` (Server Component → `<SalesOverviewView>` Client) + `<PeriodFilter>` (4 boutons) + `<RecentDealsTable>`. i18n scope `modules.salesAnalytics.overview` mirror fr/en. Empty/loading/error states.
+  - **Phase 5** : sidebar sub-items config-driven (lit `module.config.navigation` via `lib/module-configs.ts`). orgRole propagé layout RSC → sidebar pour filtre `adminOnly`. Resolver Lucide string→Component. Placeholders `performance/` + `settings/`.
+  - **Fixes post-review (6) + fix sparkline** : (1) guard module non activé via layout RSC (placeholder "Module non activé" + lien billing au lieu d'error state, couvre overview + deals), (2) `neutralLabel` "—" sur MetricCard quand previous=0 (fin de l'affichage de la valeur absolue brute "+64000" en YTD), (3+sparkline) `hasMeaningfulVariation` (variance utile min≠max, pas juste length>1) — fix de la "bande grise" sur Deals gagnés due à une série plate `[1,1]` → gradient Recharts transparent, (4) donut emptyLabel i18n, (5) pipeline variation=null, (6) `h-full` uniformise la hauteur des cards.
+  - **Tests : ~99** (68 baseline + 15 period + 16 sales-overview-format dont +6 hasMeaningfulVariation). typecheck 6/6, lint 5/5, build OK.
+
+### 🧠 Décisions structurantes prises
+- **Taux de conversion = won / (won + lost)** (win rate standard B2B, pas won/total qui dilue avec les deals ouverts). Edge case won+lost=0 → "—". Arbitrage orchestrator (Chris a délégué).
+- **Recharts (pas Tremor)** : theming via tokens OKLCH Modulo, pin exact 2.13.3. Présent dans packages/ui (MetricCard sparkline) + apps/web (charts colocated). Double dep, pin identique, pas de risque divergence.
+- **CA total** = sum won amount sur closedAt dans la période. **Pipeline value** = sum open deals (lead+qualified+proposal), état actuel. **Période défaut** = 90j.
+- **Guard module non activé via layout RSC** : duplication consciente du pattern placeholder T1.1a (TODO extract helper au 3e usage). Distingue FORBIDDEN (module non activé → placeholder + lien billing) d'une vraie erreur (réseau → "rafraîchir"). Couvre toutes les sous-routes du module.
+- **`neutralLabel` MetricCard** : "—" unifie delta=0 et previous=0 (variation non calculable), évite la valeur absolue brute. Le caller peut passer un label custom plus tard si besoin de distinguer "stable" vs "nouveau".
+- **`hasMeaningfulVariation` (variance utile) comme critère sparkline**, pas length>1 : une série plate `[1,1]` rend un gradient Recharts transparent = bande grise parasite. Lib pure isolée + 6 tests. Pattern T1.0b/T1.1b/T1.3 confirmé une 2e fois cette session (avec period.ts).
+- **Sidebar sub-items config-driven** : lit `module.config.navigation`, resolver Lucide string→Component côté client, `adminOnly` filtré via orgRole propagé depuis le layout RSC (déjà présent T1.1a JOIN memberships).
+- **Seed enrichi avec flag `--reset`** : purge les données sales de l'org avant re-seed (dates étalées pour graphes non plats). Idempotent sans le flag.
+
+### ⚠️ Points d'attention pour les prochaines sessions
+- **Dette cosmétique mineure** : la variation neutre rend "— —" (icône Minus + label "—"). Optionnel : retirer l'icône en mode neutre pour n'avoir qu'un "—". Non bloquant.
+- **CA 0€ sur 7j/30j** : le seed n'a pas de deal fermé récent (< 30j). Pour une démo plus vivante, optionnellement ajouter 1-2 won récents. Mineur.
+- **Guard layout dupliqué** du pattern T1.1a : extraire un helper partagé au 3e usage (TODO inline).
+- **Charts colocated dans apps/web** (pattern T1.3) vs MODULE_BLUEPRINT qui dit `modules/<id>/components` : divergence déjà présente depuis T1.3, à trancher si on veut réaligner.
+- **Custom date range picker** reporté T1.5+. **Page Performance réelle** T1.7. **Pipeline settings** T1.5.
+- **`bis_skin_checked` hydration warning = extension Bitdefender** (confirmé navigation privée S12), pas notre code. Récurrent, à ignorer.
+- **Cache `.next` corrompu Windows** : nettoyé préventivement 3× cette session (`Remove-Item -Recurse -Force apps\web\.next`). Symptôme récurrent à tracer dans README troubleshooting.
+- **Rappels reportés** : refacto webhook handlers (~65% dup) = **candidat idéal premier essai dynamic workflows Opus 4.8** (tâche horizontale parallélisable) · cleanup cookie modulo-active-org · CLAUDE.md:84 obsolète · Stripe Price réel sales-analytics · NEXT_PUBLIC_BETTER_AUTH_URL avant staging.
+
+### 🚧 En cours / pas fini
+Aucun chantier de code ouvert. Working tree propre après `8dd6976`.
+
+### 🔜 Prochain ticket
+- **T1.5 — Page Deals (pipeline Kanban)** : vue kanban des deals par étape (colonnes = pipeline stages configurables, cartes = deals avec montant/contact/owner), drag & drop entre étapes (dnd-kit), side panel d'édition inline au clic, bouton "Nouveau deal", toggle vue kanban/table, filtres (owner/période/montant), optimistic updates + undo. Première interaction drag&drop du projet. Inclut aussi : page Pipeline stages settings (CRUD + reorder), édition/delete deal UI, alignement couleurs hex seed → OKLCH.
+
+### 💬 Notes libres
+Session 13 = T1.4, premier dataviz de Modulo, enchaînée le même jour que Session 12 (T1.3) — journée marathon. Gros ticket : Recharts intégré proprement avec theming OKLCH, 5 phases + 2 cycles de fixes (6 review + fix sparkline). La validation visuelle a encore prouvé sa valeur : la "bande grise" Deals gagnés (variance nulle `[1,1]` → gradient Recharts transparent) était invisible aux tests/build, attrapée à l'œil puis confirmée par zoom — diagnostic racine élégant via le helper `hasMeaningfulVariation`. Pattern lib pure isolée appliqué 2× de plus (period.ts, sales-overview-format.ts). Le dashboard est une vraie vitrine : KPIs, area chart 12 mois, donut, table, filtres période fonctionnels. **Phase 1 à ~78%** (T1.0 → T1.4, 7 tickets). Prochain : T1.5 Kanban, première interaction drag & drop.
+
+---
+
 ## 📅 2026-05-29 — Session 12 — T1.3 premier CRUD réel Sales Analytics + passage Opus 4.8
 
 ### 🎯 Objectif de la session
