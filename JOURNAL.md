@@ -8,6 +8,48 @@
 
 ---
 
+## 📅 2026-05-30 — Session 14 — T1.5 Page Deals (Kanban + drag&drop + side panel + filtres)
+
+### 🎯 Objectif de la session
+Clôturer T1.5 (Page Deals, ticket vertical le plus lourd de Phase 1) repris via handoff : valider Phase 4 (side panel édition/delete + fix active-state sidebar) et Phase 5 (filtres période/montant/owner), résorber les fixes post-review, livrer en 1 commit unique. Discipline séquentielle, checkpoint visuel à chaque phase.
+
+### ✅ Tickets terminés
+- **T1.5 (commit `2d79ed5`)** — Page Deals Kanban complète. **32 fichiers, 3804 insertions, 38 deletions**. 5 phases (1-3 validées la veille, 4-5 + fixes + commit cette session) :
+  - **Phase 1** — dnd-kit core 6.3.1 (pin exact) + source unique `STAGES` typée `{id,label,color,type}` (`sales-deal-stages-ui.ts`) + query groupée + `owner-avatar.ts`.
+  - **Phase 2** — Kanban statique 5 colonnes + toggle Kanban/Table persisté via `?view=`.
+  - **Phase 3** — drag&drop inter-colonnes optimistic + rollback + undo toast sonner + `closedAt` server-side.
+  - **Phase 4** — side panel édition (`Sheet` shadcn) + delete confirmé (`AlertDialog` retokenisé, nouveau dans `@modulo/ui`) + fix active-state sidebar (`startsWith` → `pathname === href`). Fix Radix : `SelectItem value=""` interdit → sentinel `NO_CONTACT` mappé null aux deux bouts.
+  - **Phase 5** — filtres période/montant/owner client-side persistés URL (parse défensif par champ) + empty state filtré (`FilterX` + reset CTA) + a11y + fold-in i18n "Annuler". Sentinel `ALL_OWNERS` (même pattern Radix). `period-presets.ts` délègue à `resolvePeriodRange` (T1.4, DRY).
+  - **3 fixes post-review** : 3 aria-label FR → clés i18n mirror ; cast `contactsData as` supprimé (inférence tRPC suffit) ; `@dnd-kit/sortable` (dép morte) retiré.
+  - **219 tests verts** (racine : 139 web + 66 sales-analytics + 6 auth + 5 api + 3 ui).
+- **docs JOURNAL S13 (commit `6d78b27`)** — entrée Session 13 (T1.4) committée à part avant le feat (hygiène atomique).
+
+### 🧠 Décisions structurantes prises
+- **Stages enum en dur** (5 valeurs), pas de migration configurable. Source unique `STAGES` typée, zéro array hardcodé JSX. Migration pgEnum tracée (`deal.stage as DealStage` x3 acceptable en attendant).
+- **Drag inter-colonnes uniquement** (pas de reorder intra, ordre `createdAt desc`). Conséquence : `@dnd-kit/sortable` inutile → retiré (ré-ajout YAGNI si reorder revient).
+- **`closedAt` server-side** (`resolveClosedAt`) : won/lost → `now()` si null ; retour open → null ; won↔lost → préservé (sentinel `undefined`).
+- **Filtres client-side** sur deals déjà chargés (Kanban affiche tout par nature, re-fetch server-side janky pour rien ; load-all inhérent au kanban, virtualisation tracée T1.10). État URL (cohérent `?view=`), **parse défensif PAR CHAMP**. Owner list dérivée des deals (zéro query). Période sur `createdAt`, presets only.
+- **Sentinel Radix pour `value=""`** : `NO_CONTACT` + `ALL_OWNERS`. Nouvelle convention Modulo : tout Select avec option "aucun/tous" passe par un sentinel non-vide mappé aux frontières.
+- **Lib pure isolée testable** réaffirmée. Placement web vs module accepté (libs web dépendent de la shape tRPC client / search params) — cohérence notée comme nit.
+
+### ⚠️ Points d'attention pour les prochaines sessions
+- **Faux 404 = cache `.next`/`.turbo` corrompu** (Windows) : apparu en validation S2.5, diagnostiqué cache, PAS un bug code (`parseFiltersFromUrl` déjà défensif, confirmé audit + re-test cache propre). Réflexe : `Remove-Item -Recurse -Force .next, .turbo`. Test all-garbage URL ajouté pour verrouiller.
+- **`pnpm test` depuis la RACINE** (pas `apps/web`) pour la suite complète (219). Depuis `apps/web` → 139 (web seul). Piège récurrent.
+- **À vérifier/arbitrer (parkés au review)** : (1) validation server-side `contactId` uuid|null dans `deals.update` (form client loose `z.string()`) ; (2) cohérence montant create `.positive()` vs update `>=0` (deal à 0€ valide ?) ; (3) placement libs pures web vs module.
+- **Dettes tracées acceptables** : `DATE_FORMATTER fr-FR` (migration `useLocale()` Phase 2 multi-locale) ; `deal.stage as DealStage` x3 (pgEnum) ; custom date range filtres (T1.10).
+- **Rappels antérieurs** : reconfirmer depuis Sessions 12-13 (statut `color` sur `sales_pipeline_stages`, `orgStageIdx`, etc.).
+
+### 🚧 En cours / pas fini
+Aucun chantier ouvert. Working tree propre après `2d79ed5`. T1.5 clôturé en 1 commit.
+
+### 🔜 Prochain ticket
+- **T1.6 — Import CSV/Excel**. Upload + parsing Papaparse (CSV) / SheetJS (XLSX), mapping colonnes → champs, preview erreurs par ligne, import + progress bar, rapport d'import (créés/skipped/erreurs).
+
+### 💬 Notes libres
+T1.5 livré en 5 phases séquentielles sur 2 sittings (1-3 la veille, 4-5 + fixes + commit cette nuit via handoff). Fix Radix attrapé en Phase 4 et anticipé en Phase 5 (sentinel réutilisé). Faux 404 cache diagnostiqué sans envoyer Claude Code chasser un fantôme. Reviewer bien calibré (2 vrais Important, zéro Critical fantôme). Phase 1 à mi-parcours (T1.5/T1.10). Prochain : T1.6 Import.
+
+---
+
 ## 📅 2026-05-29 — Session 13 — T1.4 dashboard Sales Analytics (premier dataviz)
 
 ### 🎯 Objectif de la session
