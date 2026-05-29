@@ -43,6 +43,20 @@
       "when": 1779922506089,
       "tag": "0005_rename_deal_title_contact_fullname",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1780071475664,
+      "tag": "0006_add_pipeline_stage_color",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1780071508350,
+      "tag": "0007_add_deals_org_stage_idx",
+      "breakpoints": true
     }
   ]
 }

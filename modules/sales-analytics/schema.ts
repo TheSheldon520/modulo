@@ -23,11 +23,11 @@ import { organizations, users } from "@modulo/db/schema";
  * seeded by the migration: the module's create-deal flow will offer to seed a
  * "Default pipeline" on first use (T1.3+).
  *
- * T1.3 debt: the ROADMAP T1.2 spec also lists a `color` column (OKLCH string
- * or design-system token reference) used by the kanban UI to colour each
- * column. Intentionally omitted from T1.2 — kanban arrives in T1.5, and we
- * want the colour story (OKLCH validation, theme-aware fallback) designed
- * holistically with that ticket rather than scaffolded blindly here.
+ * `color` is a nullable text column (no default at the DB layer): the UI
+ * substitutes a theme-aware fallback when the org hasn't picked one. We
+ * intentionally validate it as a hex `#RRGGBB` string at the Zod layer for
+ * T1.3 — switching to OKLCH (consumed directly by the kanban UI) will be
+ * revisited in T1.5+ alongside the design-system tokens story.
  */
 export const salesPipelineStages = pgTable(
   "sales_pipeline_stages",
@@ -45,6 +45,8 @@ export const salesPipelineStages = pgTable(
      * for the foreseeable volume.
      */
     position: integer("position").notNull(),
+    /** Optional column colour. Hex `#RRGGBB` for T1.3 (see block comment). */
+    color: text("color"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
@@ -84,21 +86,22 @@ export const salesContacts = pgTable(
 /**
  * Sales deals — the heart of the module. `ownerId` is FK'd to `users` (the
  * salesperson responsible). `stage` and `contactId` are intentionally NOT
- * FK'd here for T1.2:
+ * FK'd here:
  *
- *   - `stage` is stored as the stage NAME (text) rather than a FK to
- *     `sales_pipeline_stages.id`. Rationale: stages can be renamed; we want
- *     the historical deal label to survive renames. T1.3 will revisit this
- *     once we have a UI to manage stages (and we may switch to a stable
- *     stage code).
+ *   - `stage` is stored as the lowercase stage CODE (text) — currently the
+ *     small literal union `lead | qualified | proposal | won | lost`.
+ *     Rationale: codes are short, stable, persisted form; UI labels are
+ *     resolved via i18n at render time. T1.5+ (kanban UI) will revisit
+ *     whether to switch to a dynamic FK against `sales_pipeline_stages.id`
+ *     once the org-managed stage CRUD ships.
  *
  *   - `contactId` is a `uuid` typed at the app layer but with no DB-level
  *     FK constraint yet. Rationale: a deal may exist without a contact (the
  *     salesperson logs an opportunity from a discovery call before they have
- *     a contact record). Migrating it to a nullable FK is a one-liner in T1.3
- *     once the create-deal flow always associates a contact.
+ *     a contact record). Migrating it to a nullable FK is a one-liner in
+ *     T1.5+ once the create-deal flow consistently associates a contact.
  *
- * Both choices are tracked as tech debt in JOURNAL.md (T1.3).
+ * Both choices are tracked as tech debt for T1.5+ in JOURNAL.md.
  *
  * `amount` is a `numeric(14, 2)` — pure decimal, no float drift. Stored as
  * a string at the JS layer (Drizzle's `numeric` default behaviour) to avoid
@@ -133,11 +136,7 @@ export const salesDeals = pgTable(
   },
   (table) => [
     index("sales_deals_organization_id_idx").on(table.organizationId),
-    // T1.3 debt: add a composite (organization_id, stage) index when the
-    // kanban filter (`WHERE organization_id = ? AND stage = ?`) becomes a hot
-    // path (T1.5). MODULE_BLUEPRINT lists it as `orgStageIdx` — omitted now
-    // because no procedure consumes it yet and we'd be guessing column order
-    // ahead of the real query plan.
+    index("org_stage_idx").on(table.organizationId, table.stage),
   ],
 );
 

@@ -6,7 +6,10 @@
   "exports": {
     ".": "./src/index.ts",
     "./stripe": "./src/stripe.ts",
-    "./modules/registry": "./src/modules/registry.ts"
+    "./trpc": "./src/trpc.ts",
+    "./procedures": "./src/procedures.ts",
+    "./modules/registry": "./src/modules/registry.ts",
+    "./modules/types": "./src/modules/types.ts"
   },
   "files": [
     "src"
@@ -20,6 +23,7 @@
   "dependencies": {
     "@modulo/auth": "workspace:*",
     "@modulo/db": "workspace:*",
+    "@modulo/sales-analytics": "workspace:*",
     "@trpc/server": "11.17.0",
     "stripe": "22.1.1",
     "superjson": "2.2.6",

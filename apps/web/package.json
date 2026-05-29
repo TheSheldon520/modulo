@@ -17,6 +17,7 @@
     "@modulo/api": "workspace:*",
     "@modulo/auth": "workspace:*",
     "@modulo/db": "workspace:*",
+    "@modulo/sales-analytics": "workspace:*",
     "@modulo/ui": "workspace:*",
     "@tanstack/react-query": "5.100.13",
     "@trpc/client": "11.17.0",

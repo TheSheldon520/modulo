@@ -155,51 +155,14 @@ const moduleConfigTpl = `// modules/<id>/module.config.ts
 // and availability; this file holds module-local metadata (icon, scopes, UI
 // surface) consumed by the module itself and the shell.
 //
-// \`ModuleConfig\` is declared locally for T1.2 — every freshly scaffolded
-// module ships its own copy. T1.3+ will centralise the type once the shell
-// starts consuming it (sidebar sub-items, command palette commands, settings
-// pages). At that point the local type moves to (likely) \`@modulo/api/modules\`
-// and modules import it instead of redeclaring.
+// \`ModuleConfig\` is centralised since T1.3 in \`@modulo/api/modules/types\` —
+// every module imports the same type so the shell consumes a single shape
+// across the suite. Do not re-declare it locally.
 //
 // TODO Chris (after scaffolding): customise the placeholders flagged below.
 
+import type { ModuleConfig } from "@modulo/api/modules/types";
 import { requireEnv } from "@modulo/auth/env";
-
-interface NavigationItem {
-  label: string;
-  href: string;
-  /** Lucide icon name. The shell resolves string → Component at the call site. */
-  icon: string;
-  adminOnly?: boolean;
-}
-
-interface RolePermissions {
-  owner: readonly string[];
-  admin: readonly string[];
-  member: readonly string[];
-  viewer: readonly string[];
-}
-
-interface ModuleConfig {
-  id: string;
-  /** URL slug — may differ from \`id\` (shorter for routes if desired). */
-  slug: string;
-  /** Full display name shown in billing, settings, marketing. */
-  name: string;
-  /** Compact name shown in tight surfaces (sidebar, breadcrumbs). */
-  shortName: string;
-  /** One-sentence pitch — used in \`/settings/billing\` and marketing. */
-  description: string;
-  /** Top-level category for grouping in module catalogues. */
-  category: "productivity" | "data" | "ai" | "communication";
-  /** Lucide icon name. Shell-side string → Component resolution. */
-  icon: string;
-  readonly stripePriceId: string;
-  monthlyPriceLabel: string;
-  scopes: readonly string[];
-  navigation: readonly NavigationItem[];
-  defaultRolePermissions: RolePermissions;
-}
 
 export const <idCamel>Config = {
   id: "<id>",
@@ -275,15 +238,44 @@ export type <PascalName>Example = typeof <idCamel>Example.$inferSelect;
 export type New<PascalName>Example = typeof <idCamel>Example.$inferInsert;
 `;
 
+const schemasTpl = `// modules/<id>/schemas.ts
+//
+// Pure-isomorphic Zod schemas + canonical enums for the "<HumanName>" module.
+// This file is consumable from BOTH server and client without dragging any
+// server-only code into the browser bundle (no \`@trpc/server\`, no Drizzle,
+// no \`@modulo/api\`). Only \`zod\` is imported.
+//
+// Convention Modulo (T1.3): any module that exposes schemas/enums to the UI
+// layer ships them here. Client Components MUST import from
+// \`@modulo/<id>/schemas\` — NEVER from \`@modulo/<id>\` (the root barrel
+// re-exports the router which transitively pulls @trpc/server, and Next
+// would crash at hydration with "@trpc/server cannot be used in the browser").
+
+import { z } from "zod";
+
+// TODO: declare your module's wire schemas here. Example:
+//
+// export const <idCamel>CreateSchema = z.object({
+//   name: z.string().min(1).max(200),
+// });
+// export type <PascalName>CreateInput = z.infer<typeof <idCamel>CreateSchema>;
+`;
+
 const routerTpl = `// modules/<id>/router.ts
 //
 // tRPC router for the "<HumanName>" module. Every procedure here MUST start
 // from \`moduleProcedure("<id>")\` so the "module-not-enabled → 403" check is
 // applied automatically and \`ctx.activeOrg\` is narrowed to non-null.
 //
+// Wire schemas live in \`./schemas\` (pure-isomorphic, no @trpc/server) so
+// Client Components can consume them safely. Import them here, then re-export
+// for server-side callers via the package root.
+//
 // T1.2 ships an empty router shell — actual procedures land in T1.3+.
 
 import { moduleProcedure, router } from "@modulo/api";
+
+// import { <idCamel>CreateSchema } from "./schemas";
 
 const <idCamel>Procedure = moduleProcedure("<id>");
 
@@ -304,11 +296,13 @@ const packageJsonTpl = `{
   "exports": {
     ".": "./router.ts",
     "./schema": "./schema.ts",
+    "./schemas": "./schemas.ts",
     "./config": "./module.config.ts"
   },
   "files": [
     "module.config.ts",
     "schema.ts",
+    "schemas.ts",
     "router.ts",
     "README.md"
   ],
@@ -320,7 +314,8 @@ const packageJsonTpl = `{
     "@modulo/auth": "workspace:*",
     "@modulo/db": "workspace:*",
     "drizzle-orm": "0.38.3",
-    "uuidv7": "1.0.2"
+    "uuidv7": "1.0.2",
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "vitest": "4.1.7"
@@ -340,6 +335,7 @@ The "<HumanName>" module. Scaffolded with \`pnpm module:new <id>\`.
 |------|---------|
 | \`module.config.ts\` | Module-local metadata (icon, scopes, Stripe price getter). |
 | \`schema.ts\` | Drizzle tables. Re-exported from \`packages/db/schema/index.ts\`. |
+| \`schemas.ts\` | Pure-isomorphic Zod schemas. Imported by both the router AND Client Components — never import from the router barrel client-side. |
 | \`router.ts\` | tRPC router. Mounted in \`packages/api/src/router.ts\` (T1.3+). |
 | \`__tests__/\` | Vitest smoke tests. |
 
@@ -397,6 +393,7 @@ interface FileSpec {
 const files: FileSpec[] = [
   { relativePath: "module.config.ts", template: moduleConfigTpl },
   { relativePath: "schema.ts", template: schemaTpl },
+  { relativePath: "schemas.ts", template: schemasTpl },
   { relativePath: "router.ts", template: routerTpl },
   { relativePath: "package.json", template: packageJsonTpl },
   { relativePath: "README.md", template: readmeTpl },

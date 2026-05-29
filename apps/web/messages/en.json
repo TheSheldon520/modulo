@@ -140,6 +140,56 @@
       }
     }
   },
+  "modules": {
+    "salesAnalytics": {
+      "deals": {
+        "title": "Deals",
+        "newDeal": "New deal",
+        "empty": {
+          "title": "No deals yet",
+          "description": "Create your first deal to get started.",
+          "cta": "New deal"
+        },
+        "columns": {
+          "name": "Name",
+          "amount": "Amount",
+          "stage": "Stage",
+          "createdAt": "Created"
+        },
+        "stages": {
+          "lead": "Lead",
+          "qualified": "Qualified",
+          "proposal": "Proposal",
+          "won": "Won",
+          "lost": "Lost"
+        },
+        "error": {
+          "loadingFailed": "Failed to load deals. Please refresh the page."
+        },
+        "dialogs": {
+          "newDeal": {
+            "title": "New deal",
+            "description": "Create a new deal in your pipeline.",
+            "fields": {
+              "name": "Name",
+              "namePlaceholder": "e.g. Picwic contract renewal 2026",
+              "amount": "Amount (€)",
+              "stage": "Stage"
+            },
+            "submit": "Create deal",
+            "submitting": "Creating…",
+            "success": "Deal created",
+            "error": "Failed to create deal",
+            "errors": {
+              "nameRequired": "Deal name is required",
+              "nameTooLong": "Name is too long (200 characters max)",
+              "amountInvalid": "Enter a valid amount (e.g. 1500 or 1500.50)"
+            }
+          }
+        }
+      }
+    }
+  },
   "healthcheck": {
     "title": "Healthcheck",
     "subtitle": "Application stack status",

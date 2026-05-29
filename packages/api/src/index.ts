@@ -21,3 +21,8 @@ export {
   orgProcedure,
   moduleProcedure,
 } from "./procedures";
+export type {
+  ModuleConfig,
+  NavigationItem,
+  RolePermissions,
+} from "./modules/types";

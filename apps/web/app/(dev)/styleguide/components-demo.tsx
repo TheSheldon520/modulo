@@ -467,6 +467,29 @@ export function ComponentsDemo() {
         <CommandPaletteDemo />
       </Demo>
 
+      {/*
+       * Sales Stages badges — mapping sémantique bg-{semantic}/10 text-{semantic}
+       * documenté dans DESIGN_SYSTEM.md §5 "Status badges (pattern subtil)".
+       * T1.3 — pour review visuelle des 5 états de stage.
+       */}
+      <Demo label="Sales Stages · badges sémantiques">
+        <span className="inline-flex items-center rounded-full bg-info/10 px-2.5 py-0.5 text-xs font-medium text-info">
+          Lead
+        </span>
+        <span className="inline-flex items-center rounded-full bg-text-tertiary/10 px-2.5 py-0.5 text-xs font-medium text-text-secondary">
+          Qualifié
+        </span>
+        <span className="inline-flex items-center rounded-full bg-warning/10 px-2.5 py-0.5 text-xs font-medium text-warning">
+          Proposition
+        </span>
+        <span className="inline-flex items-center rounded-full bg-success/10 px-2.5 py-0.5 text-xs font-medium text-success">
+          Gagné
+        </span>
+        <span className="inline-flex items-center rounded-full bg-danger/10 px-2.5 py-0.5 text-xs font-medium text-danger">
+          Perdu
+        </span>
+      </Demo>
+
       <Demo label="Installés · démo à venir">
         <Badge variant="outline">sonner (toasts)</Badge>
       </Demo>

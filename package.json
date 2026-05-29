@@ -18,6 +18,7 @@
     "db:push": "turbo run db:push",
     "db:studio": "turbo run db:studio",
     "module:new": "tsx scripts/module-new.ts",
+    "seed:sales": "tsx scripts/seed-sales-demo.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "clean": "turbo run clean && rm -rf node_modules"

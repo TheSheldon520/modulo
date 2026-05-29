@@ -1,0 +1,1 @@
+ALTER TABLE "sales_pipeline_stages" ADD COLUMN "color" text;

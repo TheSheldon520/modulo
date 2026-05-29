@@ -140,6 +140,56 @@
       }
     }
   },
+  "modules": {
+    "salesAnalytics": {
+      "deals": {
+        "title": "Deals",
+        "newDeal": "Nouveau deal",
+        "empty": {
+          "title": "Aucun deal pour le moment",
+          "description": "Créez votre premier deal pour commencer.",
+          "cta": "Nouveau deal"
+        },
+        "columns": {
+          "name": "Nom",
+          "amount": "Montant",
+          "stage": "Étape",
+          "createdAt": "Créé le"
+        },
+        "stages": {
+          "lead": "Lead",
+          "qualified": "Qualifié",
+          "proposal": "Proposition",
+          "won": "Gagné",
+          "lost": "Perdu"
+        },
+        "error": {
+          "loadingFailed": "Impossible de charger les deals. Veuillez rafraîchir la page."
+        },
+        "dialogs": {
+          "newDeal": {
+            "title": "Nouveau deal",
+            "description": "Créez un nouveau deal dans votre pipeline.",
+            "fields": {
+              "name": "Nom",
+              "namePlaceholder": "Ex: Renouvellement contrat Picwic 2026",
+              "amount": "Montant (€)",
+              "stage": "Étape"
+            },
+            "submit": "Créer le deal",
+            "submitting": "Création en cours…",
+            "success": "Deal créé",
+            "error": "Erreur lors de la création",
+            "errors": {
+              "nameRequired": "Le nom du deal est requis",
+              "nameTooLong": "Le nom est trop long (200 caractères max)",
+              "amountInvalid": "Entrez un montant valide (ex: 1500 ou 1500.50)"
+            }
+          }
+        }
+      }
+    }
+  },
   "healthcheck": {
     "title": "Healthcheck",
     "subtitle": "État des couches de l'application",

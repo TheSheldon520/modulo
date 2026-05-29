@@ -1,0 +1,1 @@
+CREATE INDEX "org_stage_idx" ON "sales_deals" USING btree ("organization_id","stage");

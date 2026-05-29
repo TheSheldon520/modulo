@@ -6,11 +6,13 @@
   "exports": {
     ".": "./router.ts",
     "./schema": "./schema.ts",
+    "./schemas": "./schemas.ts",
     "./config": "./module.config.ts"
   },
   "files": [
     "module.config.ts",
     "schema.ts",
+    "schemas.ts",
     "router.ts",
     "README.md"
   ],
@@ -18,13 +20,18 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@modulo/api": "workspace:*",
     "@modulo/auth": "workspace:*",
     "@modulo/db": "workspace:*",
     "drizzle-orm": "0.38.3",
-    "uuidv7": "1.0.2"
+    "uuidv7": "1.0.2",
+    "zod": "4.4.3"
+  },
+  "peerDependencies": {
+    "@modulo/api": "workspace:*",
+    "@trpc/server": "11.17.0"
   },
   "devDependencies": {
+    "@trpc/server": "11.17.0",
     "vitest": "4.1.7"
   }
 }
