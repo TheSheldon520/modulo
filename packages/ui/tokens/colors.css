@@ -59,6 +59,20 @@
   --danger-muted: oklch(0.3 0.06 25);
   --info-muted: oklch(0.3 0.04 230);
 
+  /* === DATAVIZ (chart palette) ===
+     Categorical palette for charts (series, slices). Five hues chosen for
+     perceptual separation under Modulo Dark with OKLCH lightness ~0.65-0.80
+     to remain readable on --surface-1 / --surface-2 backgrounds. Order is
+     stable: --chart-1 is the "primary" series (use for the dominant metric,
+     e.g. revenue), --chart-2..5 for secondary categories. See DESIGN_SYSTEM §7.
+     Multi-tenant theming does NOT rewrite these — chart hues stay consistent
+     across orgs to preserve reading habits across tenants. */
+  --chart-1: oklch(0.72 0.18 145);
+  --chart-2: oklch(0.7 0.15 230);
+  --chart-3: oklch(0.8 0.15 75);
+  --chart-4: oklch(0.68 0.2 25);
+  --chart-5: oklch(0.65 0.2 320);
+
   /* === ELEVATION === */
   --shadow-sm: 0 1px 2px 0 oklch(0 0 0 / 0.2);
   --shadow-md: 0 4px 12px -2px oklch(0 0 0 / 0.3);

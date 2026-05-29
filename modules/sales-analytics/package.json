@@ -7,13 +7,15 @@
     ".": "./router.ts",
     "./schema": "./schema.ts",
     "./schemas": "./schemas.ts",
-    "./config": "./module.config.ts"
+    "./config": "./module.config.ts",
+    "./lib/period": "./lib/period.ts"
   },
   "files": [
     "module.config.ts",
     "schema.ts",
     "schemas.ts",
     "router.ts",
+    "lib/period.ts",
     "README.md"
   ],
   "scripts": {

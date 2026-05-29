@@ -33,7 +33,7 @@ import {
 import { generateThemeVars } from "@modulo/ui/lib/theme-vars";
 
 import { getModule } from "@modulo/api/modules/registry";
-
+import { getModuleConfig } from "@/lib/module-configs";
 
 import { OrgCookieResync } from "./_components/org-cookie-resync";
 import { CommandPalette } from "./_components/command-palette/command-palette";
@@ -99,7 +99,14 @@ export default async function OrgLayout({ children, params }: LayoutProps) {
     .map((row) => {
       const descriptor = getModule(row.moduleId);
       if (!descriptor) return null;
-      return { slug: descriptor.slug, name: descriptor.name };
+      // Attach navigation items from the module config (if available).
+      // Falls back to empty array for modules without a registered config.
+      const config = getModuleConfig(row.moduleId);
+      return {
+        slug: descriptor.slug,
+        name: descriptor.name,
+        navigation: config ? [...config.navigation] : [],
+      };
     })
     .filter((value): value is SidebarModule => value !== null);
 
@@ -136,6 +143,7 @@ export default async function OrgLayout({ children, params }: LayoutProps) {
         activeOrg={{ id: org.id, slug: org.slug, name: org.name }}
         modules={sidebarModules}
         userEmail={session.user.email}
+        userRole={org.role}
       >
         {children}
       </SidebarShell>

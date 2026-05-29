@@ -142,6 +142,56 @@
   },
   "modules": {
     "salesAnalytics": {
+      "overview": {
+        "title": "Overview",
+        "empty": {
+          "title": "No deals yet",
+          "description": "Create your first deal to start tracking your sales activity.",
+          "cta": "Create your first deal"
+        },
+        "periods": {
+          "7d": "7d",
+          "30d": "30d",
+          "90d": "90d",
+          "ytd": "YTD"
+        },
+        "kpis": {
+          "revenue": {
+            "label": "Total revenue"
+          },
+          "wonCount": {
+            "label": "Won deals"
+          },
+          "conversionRate": {
+            "label": "Conversion rate",
+            "nullPlaceholder": "—"
+          },
+          "pipelineValue": {
+            "label": "Pipeline"
+          }
+        },
+        "variation": {
+          "vs": "vs previous period",
+          "neutral": "—"
+        },
+        "charts": {
+          "revenue": {
+            "title": "Revenue — last 12 months"
+          },
+          "stages": {
+            "title": "Deal distribution by stage",
+            "empty": "No deals"
+          }
+        },
+        "recentDeals": {
+          "title": "Recent deals",
+          "viewAll": "View all",
+          "empty": "No deals"
+        },
+        "error": {
+          "loadingFailed": "Failed to load the dashboard. Please refresh."
+        }
+      },
       "deals": {
         "title": "Deals",
         "newDeal": "New deal",

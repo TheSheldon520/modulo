@@ -16,27 +16,68 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { LayoutDashboard, Package } from "lucide-react";
+import {
+  Briefcase,
+  LayoutDashboard,
+  Package,
+  Settings,
+  TrendingUp,
+} from "lucide-react";
 
 import { cn } from "@modulo/ui/lib/utils";
+import type { NavigationItem } from "@modulo/api/modules/types";
+
+// ---------------------------------------------------------------------------
+// Lucide icon resolver
+// ---------------------------------------------------------------------------
+
+// Maps icon name strings from module.config.ts to Lucide components.
+// Only icons used in navigation items need to be listed here.
+const LUCIDE_ICONS: Record<string, React.ComponentType<React.SVGProps<SVGSVGElement> & { strokeWidth?: number }>> = {
+  LayoutDashboard,
+  Briefcase,
+  TrendingUp,
+  Settings,
+  Package,
+};
+
+function resolveIcon(
+  iconName: string,
+): React.ComponentType<React.SVGProps<SVGSVGElement> & { strokeWidth?: number }> {
+  return LUCIDE_ICONS[iconName] ?? Package;
+}
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 export interface SidebarModule {
   slug: string;
   name: string;
+  /** Navigation sub-items from module.config.ts. Empty array = no sub-items. */
+  navigation: NavigationItem[];
 }
+
+/** User role within the active org — used to filter adminOnly nav items. */
+export type OrgRole = "owner" | "admin" | "member" | "viewer";
 
 interface SidebarProps {
   orgSlug: string;
   modules: SidebarModule[];
   collapsed: boolean;
+  /** Role of the current user in the active org. */
+  userRole: OrgRole;
 }
 
-export function Sidebar({ orgSlug, modules, collapsed }: SidebarProps) {
+const ADMIN_ROLES: OrgRole[] = ["owner", "admin"];
+
+export function Sidebar({ orgSlug, modules, collapsed, userRole }: SidebarProps) {
   const t = useTranslations("app.sidebar");
   const pathname = usePathname();
 
   const dashboardHref = `/${orgSlug}/dashboard`;
   const isDashboardActive = pathname === dashboardHref;
+  const isAdminOrOwner = ADMIN_ROLES.includes(userRole);
 
   return (
     <aside
@@ -75,17 +116,60 @@ export function Sidebar({ orgSlug, modules, collapsed }: SidebarProps) {
               {t("modulesSection")}
             </div>
             {modules.map((module) => {
-              const href = `/${orgSlug}/m/${module.slug}`;
-              const active = pathname.startsWith(href);
+              const moduleHref = `/${orgSlug}/m/${module.slug}`;
+              const isModuleActive = pathname.startsWith(moduleHref);
+
+              // Filter navigation items: exclude adminOnly items for non-admins
+              const visibleNavItems = module.navigation.filter(
+                (item) => !item.adminOnly || isAdminOrOwner,
+              );
+
               return (
-                <SidebarItem
-                  key={module.slug}
-                  href={href}
-                  icon={<Package className="size-4" strokeWidth={1.5} />}
-                  label={module.name}
-                  active={active}
-                  collapsed={collapsed}
-                />
+                <div key={module.slug}>
+                  {/* Module parent item */}
+                  <SidebarItem
+                    href={moduleHref}
+                    icon={<Package className="size-4" strokeWidth={1.5} />}
+                    label={module.name}
+                    active={isModuleActive && visibleNavItems.length === 0}
+                    collapsed={collapsed}
+                  />
+
+                  {/* Sub-items (hidden when collapsed) */}
+                  {visibleNavItems.length > 0 && !collapsed && (
+                    <div className="ml-2 mt-0.5 flex flex-col gap-0.5 border-l border-border-subtle pl-3">
+                      {visibleNavItems.map((item) => {
+                        const fullHref = `/${orgSlug}${item.href}`;
+                        // Active if exact match or pathname starts with the href
+                        // (handles nested routes like /m/sales/deals/123)
+                        const isActive =
+                          pathname === fullHref ||
+                          pathname.startsWith(fullHref + "/");
+                        const IconComponent = resolveIcon(item.icon);
+
+                        return (
+                          <Link
+                            key={item.href}
+                            href={fullHref}
+                            className={cn(
+                              "flex h-7 items-center gap-2 rounded px-2 text-xs transition-colors",
+                              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+                              isActive
+                                ? "bg-surface-3 text-text-primary"
+                                : "text-text-secondary hover:bg-surface-2 hover:text-text-primary",
+                            )}
+                          >
+                            <IconComponent
+                              className="size-3 shrink-0"
+                              strokeWidth={1.5}
+                            />
+                            <span className="truncate">{item.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               );
             })}
           </>

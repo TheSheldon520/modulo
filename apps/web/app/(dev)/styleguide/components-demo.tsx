@@ -12,6 +12,7 @@
 import { ArrowRight, Check, Plus, Settings, Trash2, User } from "lucide-react"
 
 import { CommandPaletteDemo } from "./command-palette-demo"
+import { MetricCardDemo } from "./metric-card-demo"
 
 import { Avatar, AvatarFallback } from "@modulo/ui/components/avatar"
 import { Badge } from "@modulo/ui/components/badge"
@@ -468,6 +469,14 @@ export function ComponentsDemo() {
       </Demo>
 
       {/*
+       * MetricCard — KPI card with sparkline, variation badge and skeleton state.
+       * T1.4 Phase 3: generic component in packages/ui, reusable across modules.
+       */}
+      <Demo label="MetricCard · KPI cards T1.4">
+        <MetricCardDemo />
+      </Demo>
+
+      {/*
        * Sales Stages badges — mapping sémantique bg-{semantic}/10 text-{semantic}
        * documenté dans DESIGN_SYSTEM.md §5 "Status badges (pattern subtil)".
        * T1.3 — pour review visuelle des 5 états de stage.
@@ -487,6 +496,34 @@ export function ComponentsDemo() {
         </span>
         <span className="inline-flex items-center rounded-full bg-danger/10 px-2.5 py-0.5 text-xs font-medium text-danger">
           Perdu
+        </span>
+      </Demo>
+
+      {/*
+       * Chart palette tokens — categorical hues for dataviz (T1.4). Order
+       * is stable across the suite: chart-1 = primary series, 2..5 secondary.
+       * Multi-tenant theming does NOT rewrite these.
+       */}
+      <Demo label="Chart palette · tokens dataviz">
+        <span className="inline-flex h-8 items-center gap-2 rounded-md bg-chart-1/15 px-3 text-xs font-medium text-chart-1">
+          <span className="size-3 rounded-full bg-chart-1" />
+          chart-1
+        </span>
+        <span className="inline-flex h-8 items-center gap-2 rounded-md bg-chart-2/15 px-3 text-xs font-medium text-chart-2">
+          <span className="size-3 rounded-full bg-chart-2" />
+          chart-2
+        </span>
+        <span className="inline-flex h-8 items-center gap-2 rounded-md bg-chart-3/15 px-3 text-xs font-medium text-chart-3">
+          <span className="size-3 rounded-full bg-chart-3" />
+          chart-3
+        </span>
+        <span className="inline-flex h-8 items-center gap-2 rounded-md bg-chart-4/15 px-3 text-xs font-medium text-chart-4">
+          <span className="size-3 rounded-full bg-chart-4" />
+          chart-4
+        </span>
+        <span className="inline-flex h-8 items-center gap-2 rounded-md bg-chart-5/15 px-3 text-xs font-medium text-chart-5">
+          <span className="size-3 rounded-full bg-chart-5" />
+          chart-5
         </span>
       </Demo>
 

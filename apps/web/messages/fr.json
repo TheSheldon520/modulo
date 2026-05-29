@@ -142,6 +142,56 @@
   },
   "modules": {
     "salesAnalytics": {
+      "overview": {
+        "title": "Vue d'ensemble",
+        "empty": {
+          "title": "Aucun deal pour le moment",
+          "description": "Créez votre premier deal pour commencer à suivre votre activité commerciale.",
+          "cta": "Créer votre premier deal"
+        },
+        "periods": {
+          "7d": "7j",
+          "30d": "30j",
+          "90d": "90j",
+          "ytd": "YTD"
+        },
+        "kpis": {
+          "revenue": {
+            "label": "CA total"
+          },
+          "wonCount": {
+            "label": "Deals gagnés"
+          },
+          "conversionRate": {
+            "label": "Taux de conversion",
+            "nullPlaceholder": "—"
+          },
+          "pipelineValue": {
+            "label": "Pipeline"
+          }
+        },
+        "variation": {
+          "vs": "vs période précédente",
+          "neutral": "—"
+        },
+        "charts": {
+          "revenue": {
+            "title": "CA sur 12 mois"
+          },
+          "stages": {
+            "title": "Répartition par étape",
+            "empty": "Aucun deal"
+          }
+        },
+        "recentDeals": {
+          "title": "Deals récents",
+          "viewAll": "Voir tout",
+          "empty": "Aucun deal"
+        },
+        "error": {
+          "loadingFailed": "Impossible de charger le tableau de bord. Veuillez rafraîchir."
+        }
+      },
       "deals": {
         "title": "Deals",
         "newDeal": "Nouveau deal",

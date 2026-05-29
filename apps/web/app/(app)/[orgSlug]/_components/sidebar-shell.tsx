@@ -16,7 +16,7 @@
 import { useEffect, useState } from "react";
 
 import type { OrgSummary } from "./topbar";
-import { Sidebar, type SidebarModule } from "./sidebar";
+import { Sidebar, type SidebarModule, type OrgRole } from "./sidebar";
 import { Topbar } from "./topbar";
 
 const STORAGE_KEY = "modulo:sidebar-collapsed";
@@ -26,6 +26,7 @@ interface SidebarShellProps {
   activeOrg: OrgSummary;
   modules: SidebarModule[];
   userEmail: string;
+  userRole: OrgRole;
   children: React.ReactNode;
 }
 
@@ -34,6 +35,7 @@ export function SidebarShell({
   activeOrg,
   modules,
   userEmail,
+  userRole,
   children,
 }: SidebarShellProps) {
   // Default `false` (expanded) so the initial server-matching render is
@@ -66,7 +68,7 @@ export function SidebarShell({
 
   return (
     <div className="flex min-h-screen bg-surface-0">
-      <Sidebar orgSlug={orgSlug} modules={modules} collapsed={collapsed} />
+      <Sidebar orgSlug={orgSlug} modules={modules} collapsed={collapsed} userRole={userRole} />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar
           activeOrg={activeOrg}

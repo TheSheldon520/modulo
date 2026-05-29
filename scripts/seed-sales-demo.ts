@@ -3,14 +3,22 @@
 // Seed demo data for the Sales Analytics module on a given organization.
 //
 // Usage:
-//   pnpm seed:sales <org-slug>
+//   pnpm seed:sales <org-slug>          # idempotent, skips if data exists
+//   pnpm seed:sales <org-slug> --reset  # purges org's sales_* rows first
 //
-// Idempotent: if the org already has any sales_pipeline_stages row, the seed
-// short-circuits with an informational log. Re-running the script on a clean
+// Idempotent default: if the org already has any sales_pipeline_stages row,
+// the seed short-circuits with an informational log. Re-running on a clean
 // org inserts the full 25-row demo set (5 stages + 5 contacts + 10 deals).
 //
-// Stage codes are lowercase canonical (cf. router DEAL_STAGES). Contact /
-// deal data mirrors the Silverlit dogfooding context (French retail B2B).
+// `--reset` flag: deletes the org's existing sales_deals + sales_contacts +
+// sales_pipeline_stages rows BEFORE re-seeding. Useful to purge ad-hoc deals
+// created during validation (e.g. the "Test" deal created in T1.3 visual
+// validation) and rebuild a deterministic demo set with dates spread across
+// 12 months for the T1.4 dashboard.
+//
+// Stage codes are lowercase canonical (cf. router DEAL_STAGES). Dates are
+// spread from June 2025 to May 2026 so the revenue area chart and donut
+// look populated, not flat-today.
 
 import { config } from "dotenv";
 import { eq } from "drizzle-orm";
@@ -28,10 +36,12 @@ import {
 config({ path: ".env.local" });
 
 const orgSlug = process.argv[2];
+const shouldReset = process.argv.includes("--reset");
+
 if (!orgSlug) {
   process.stderr.write(
     "Error: missing <org-slug> argument.\n" +
-      "Usage: pnpm seed:sales <org-slug>\n",
+      "Usage: pnpm seed:sales <org-slug> [--reset]\n",
   );
   process.exit(1);
 }
@@ -59,19 +69,40 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  // Idempotency: skip if any pipeline stage already exists for this org.
-  const existingStages = await db
-    .select({ id: salesPipelineStages.id })
-    .from(salesPipelineStages)
-    .where(eq(salesPipelineStages.organizationId, org.id))
-    .limit(1);
-  if (existingStages.length > 0) {
+  // --reset: purge before re-seed. Order matters: deals reference owners
+  // (users), which we leave intact, but no FK from deals to contacts/stages
+  // at the DB layer (T1.2 decision), so the three deletes are independent.
+  if (shouldReset) {
+    const dDeals = await db
+      .delete(salesDeals)
+      .where(eq(salesDeals.organizationId, org.id))
+      .returning({ id: salesDeals.id });
+    const dContacts = await db
+      .delete(salesContacts)
+      .where(eq(salesContacts.organizationId, org.id))
+      .returning({ id: salesContacts.id });
+    const dStages = await db
+      .delete(salesPipelineStages)
+      .where(eq(salesPipelineStages.organizationId, org.id))
+      .returning({ id: salesPipelineStages.id });
     process.stdout.write(
-      `Organization "${orgSlug}" already has sales seed data — skipping.\n` +
-        `Delete the existing rows manually if you really want to re-seed.\n`,
+      `Reset "${orgSlug}": purged ${dDeals.length} deals, ${dContacts.length} contacts, ${dStages.length} pipeline stages.\n`,
     );
-    await pool.end();
-    process.exit(0);
+  } else {
+    // Idempotency: skip if any pipeline stage already exists for this org.
+    const existingStages = await db
+      .select({ id: salesPipelineStages.id })
+      .from(salesPipelineStages)
+      .where(eq(salesPipelineStages.organizationId, org.id))
+      .limit(1);
+    if (existingStages.length > 0) {
+      process.stdout.write(
+        `Organization "${orgSlug}" already has sales seed data — skipping.\n` +
+          `Pass --reset to wipe and re-seed deterministically.\n`,
+      );
+      await pool.end();
+      process.exit(0);
+    }
   }
 
   // Resolve any membership owner — every deal needs a salesperson FK. Picking
@@ -140,71 +171,89 @@ async function main(): Promise<void> {
     contactsData.map((c) => ({ ...c, organizationId: org.id })),
   );
 
-  // 3. Deals (10) — mix of stages, lowercase codes
+  // 3. Deals (10) — dates spread across 12 months (Jun 2025 → May 2026) so
+  // the T1.4 revenue area chart and stage donut look populated rather than
+  // a single bar at "today". closedAt is set for won/lost deals (>= createdAt)
+  // and null for open deals (lead/qualified/proposal). amount is a string
+  // (Drizzle numeric wire format).
   const dealsData: Array<{
     name: string;
     amount: string;
     stage: "lead" | "qualified" | "proposal" | "won" | "lost";
+    createdAt: Date;
     closedAt: Date | null;
   }> = [
+    // ---- Won deals (closedAt set, revenue contribution by month) ----
+    {
+      name: "Renouvellement contrat Picwic 2026",
+      amount: "78000",
+      stage: "won",
+      createdAt: new Date("2025-07-12T09:00:00Z"),
+      closedAt: new Date("2025-09-18T10:00:00Z"),
+    },
+    {
+      name: "Référencement Robots Carrefour Hyper",
+      amount: "62000",
+      stage: "won",
+      createdAt: new Date("2025-10-05T09:00:00Z"),
+      closedAt: new Date("2025-12-14T10:00:00Z"),
+    },
+    {
+      name: "Lancement collection JouéClub Anniversaire",
+      amount: "41000",
+      stage: "won",
+      createdAt: new Date("2026-01-20T09:00:00Z"),
+      closedAt: new Date("2026-03-08T10:00:00Z"),
+    },
+    {
+      name: "Réassort Boulanger T1 2026",
+      amount: "23000",
+      stage: "won",
+      createdAt: new Date("2026-02-05T09:00:00Z"),
+      closedAt: new Date("2026-04-22T10:00:00Z"),
+    },
+    // ---- Lost deals (closedAt set, contribute to conversion denominator) ----
+    {
+      name: "Test concept E.Leclerc Pro",
+      amount: "12000",
+      stage: "lost",
+      createdAt: new Date("2025-06-15T09:00:00Z"),
+      closedAt: new Date("2025-08-30T10:00:00Z"),
+    },
+    {
+      name: "Pilot premium Boulanger Tech",
+      amount: "9500",
+      stage: "lost",
+      createdAt: new Date("2025-11-10T09:00:00Z"),
+      closedAt: new Date("2026-01-25T10:00:00Z"),
+    },
+    // ---- Open deals (no closedAt, contribute to pipelineValue) ----
     {
       name: "Référencement gamme Hélicos Carrefour Q2",
       amount: "45000",
       stage: "qualified",
+      createdAt: new Date("2026-04-02T09:00:00Z"),
       closedAt: null,
     },
     {
       name: "Extension portfolio Voitures RC E.Leclerc",
       amount: "32000",
       stage: "proposal",
+      createdAt: new Date("2026-03-18T09:00:00Z"),
       closedAt: null,
-    },
-    {
-      name: "Renouvellement contrat Picwic 2026",
-      amount: "78000",
-      stage: "won",
-      closedAt: new Date("2026-05-15T10:00:00Z"),
-    },
-    {
-      name: "Pilot Drones gaming Boulanger",
-      amount: "18500",
-      stage: "lead",
-      closedAt: null,
-    },
-    {
-      name: "Partenariat JouéClub Noël 2026",
-      amount: "55000",
-      stage: "qualified",
-      closedAt: null,
-    },
-    {
-      name: "Référencement Robots Carrefour Hyper",
-      amount: "62000",
-      stage: "won",
-      closedAt: new Date("2026-04-22T10:00:00Z"),
-    },
-    {
-      name: "Test concept E.Leclerc Pro",
-      amount: "12000",
-      stage: "lost",
-      closedAt: new Date("2026-03-10T10:00:00Z"),
     },
     {
       name: "Démo gamme premium Picwic",
       amount: "8500",
       stage: "proposal",
+      createdAt: new Date("2026-05-02T09:00:00Z"),
       closedAt: null,
     },
     {
-      name: "Réassort Boulanger T3",
-      amount: "23000",
+      name: "Partenariat JouéClub Noël 2026",
+      amount: "55000",
       stage: "lead",
-      closedAt: null,
-    },
-    {
-      name: "Lancement collection JouéClub Anniversaire",
-      amount: "41000",
-      stage: "proposal",
+      createdAt: new Date("2026-05-10T09:00:00Z"),
       closedAt: null,
     },
   ];
@@ -220,7 +269,7 @@ async function main(): Promise<void> {
     `Seeded "${org.name}" (${orgSlug}):\n` +
       `  - ${stagesData.length} pipeline stages\n` +
       `  - ${contactsData.length} contacts\n` +
-      `  - ${dealsData.length} deals\n`,
+      `  - ${dealsData.length} deals (4 won, 2 lost, 4 open) spread across 12 months\n`,
   );
 
   await pool.end();
