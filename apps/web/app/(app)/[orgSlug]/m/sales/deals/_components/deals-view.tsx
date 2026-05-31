@@ -21,7 +21,8 @@
 
 import { useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FilterX } from "lucide-react";
+import Link from "next/link";
+import { FilterX, Upload } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@modulo/ui/components/button";
@@ -43,13 +44,15 @@ import { DealFilters } from "./deal-filters";
 
 interface DealsViewProps {
   ownerId: string;
+  orgSlug: string;
   title: string;
   newDealLabel: string;
 }
 
-export function DealsView({ ownerId, title, newDealLabel }: DealsViewProps) {
+export function DealsView({ ownerId, orgSlug, title, newDealLabel }: DealsViewProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const t = useTranslations("modules.salesAnalytics.deals");
 
   // Read current view from URL — default to "kanban"
   const rawView = searchParams.get("view");
@@ -106,6 +109,17 @@ export function DealsView({ ownerId, title, newDealLabel }: DealsViewProps) {
         </h1>
         <div className="flex items-center gap-3">
           <ViewToggle value={view} onChange={handleViewChange} />
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            aria-label={t("importCtaAria")}
+          >
+            <Link href={`/${orgSlug}/m/sales/import`}>
+              <Upload size={16} strokeWidth={1.5} aria-hidden />
+              {t("importCta")}
+            </Link>
+          </Button>
           <NewDealDialog ownerId={ownerId} newDealLabel={newDealLabel} />
         </div>
       </header>

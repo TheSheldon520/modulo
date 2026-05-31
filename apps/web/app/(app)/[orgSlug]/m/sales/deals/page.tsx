@@ -57,6 +57,7 @@ export default async function DealsPage({ params }: PageProps) {
       >
         <DealsView
           ownerId={session.user.id}
+          orgSlug={orgSlug}
           title={t("title")}
           newDealLabel={t("newDeal")}
         />

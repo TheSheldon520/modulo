@@ -192,9 +192,112 @@
           "loadingFailed": "Impossible de charger le tableau de bord. Veuillez rafraîchir."
         }
       },
+      "import": {
+        "title": "Import",
+        "description": "Importez vos deals depuis un fichier CSV ou Excel.",
+        "upload": {
+          "title": "Déposer un fichier",
+          "helper": "ou cliquer pour parcourir",
+          "formats": "CSV, XLSX, XLS -- max 10 MB",
+          "cta": "Choisir un fichier",
+          "parsing": "Analyse du fichier...",
+          "aria": "Zone de dépôt de fichier"
+        },
+        "errors": {
+          "UNSUPPORTED_FORMAT": "Format non supporté. Utilisez un fichier CSV, XLSX ou XLS.",
+          "EMPTY_FILE": "Le fichier ne contient aucune ligne exploitable.",
+          "PARSE_FAILED": "Impossible de lire le fichier.",
+          "FILE_TOO_LARGE": "Le fichier dépasse 10 MB. Réduisez sa taille avant import.",
+          "retry": "Réessayer avec un autre fichier",
+          "importFailed": "L'import a échoué. Aucune donnée n'a été enregistrée. Merci de réessayer."
+        },
+        "preview": {
+          "header": "Fichier : {fileName} -- {count, plural, =0 {0 ligne} =1 {1 ligne} other {{count} lignes}} détectées",
+          "truncatedHint": "Aperçu : 50 premières lignes sur {total}",
+          "sheetName": "Feuille : {name}",
+          "reset": "Choisir un autre fichier",
+          "emptyCell": "Cellule vide"
+        },
+        "hint": {
+          "title": "Comment ça marche",
+          "description": "Glissez-déposez un fichier CSV ou Excel pour prévisualiser ses lignes. La prochaine étape vous permettra de mapper les colonnes vers les champs des deals."
+        },
+        "mapping": {
+          "title": "Associez les colonnes",
+          "description": "Indiquez à quel champ de deal correspond chaque colonne de votre fichier.",
+          "unmapped": "Non mappé",
+          "required": "Requis",
+          "continueLabel": "Continuer",
+          "missingRequired": "Mappez les champs : {fields}",
+          "fields": {
+            "name":          { "label": "Nom du deal",    "helper": "L'intitulé qui s'affiche dans le pipeline" },
+            "amount":        { "label": "Montant",         "helper": "En euros, sans symbole" },
+            "stage":         { "label": "Étape",           "helper": "lead, qualified, proposal, won ou lost" },
+            "contact_name":  { "label": "Nom du contact",  "helper": "Optionnel" },
+            "contact_email": { "label": "Email contact",   "helper": "Optionnel" }
+          },
+          "fileSummary": "Fichier : {fileName} -- {count, plural, =1 {1 ligne} other {{count} lignes}}",
+          "reset": "Choisir un autre fichier"
+        },
+        "validation": {
+          "title": "Vérifiez les données",
+          "description": "Chaque ligne est validée selon le format attendu pour un deal. Les lignes en erreur seront ignorées lors de l'import.",
+          "counters": {
+            "valid": "{count, plural, =0 {0 valide} =1 {1 valide} other {{count} valides}}",
+            "error": "{count, plural, =0 {0 en erreur} =1 {1 en erreur} other {{count} en erreur}}"
+          },
+          "columns": {
+            "index": "#",
+            "status": "Statut",
+            "name": "Nom",
+            "amount": "Montant",
+            "stage": "Étape",
+            "contact": "Contact",
+            "email": "Email",
+            "errors": "Erreurs"
+          },
+          "status": {
+            "valid": "Valide",
+            "error": "Erreur"
+          },
+          "errors": {
+            "NAME_REQUIRED": "Nom requis",
+            "AMOUNT_REQUIRED": "Montant requis",
+            "AMOUNT_INVALID": "Montant invalide",
+            "AMOUNT_NEGATIVE": "Montant négatif non autorisé",
+            "STAGE_REQUIRED": "Étape requise",
+            "STAGE_INVALID": "Étape non reconnue (valeurs attendues : Lead, Qualifié, Proposition, Gagné, Perdu)",
+            "EMAIL_INVALID": "Email invalide"
+          },
+          "truncatedHint": "Aperçu : {shown} premières lignes sur {total}",
+          "willSkip": "{count, plural, =1 {1 ligne en erreur sera ignorée} other {{count} lignes en erreur seront ignorées}}",
+          "back": "Retour",
+          "submitLoading": "Import en cours…",
+          "continueLabel": "{count, plural, =0 {Aucune ligne à importer} =1 {Importer 1 deal} other {Importer {count} deals}}"
+        },
+        "importing": {
+          "title": "Import en cours...",
+          "subtitle": "{count, plural, =1 {Création de 1 deal dans votre pipeline} other {Création de {count} deals dans votre pipeline}}",
+          "dontClose": "Merci de ne pas fermer cette page"
+        },
+        "report": {
+          "title": "Import terminé",
+          "stats": {
+            "dealsCreated": "{count, plural, =1 {1 deal créé} other {{count} deals créés}}",
+            "dealsCreatedLabel": "Deals créés",
+            "contactsCreatedLabel": "Contacts créés",
+            "contactsLinkedLabel": "Contacts liés",
+            "skippedLabel": "Lignes ignorées"
+          },
+          "viewDeals": "Voir les deals",
+          "importAnother": "Importer un autre fichier"
+        }
+      },
       "deals": {
         "title": "Deals",
         "newDeal": "Nouveau deal",
+        "importCta": "Importer",
+        "importCtaAria": "Importer des deals depuis un fichier",
         "empty": {
           "title": "Aucun deal pour le moment",
           "description": "Créez votre premier deal pour commencer.",

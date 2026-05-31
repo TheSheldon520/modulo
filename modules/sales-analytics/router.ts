@@ -40,6 +40,7 @@ import {
   contactUpdateSchema,
   dealCreateSchema,
   dealUpdateSchema,
+  importBatchInputSchema,
   pipelineStageCreateSchema,
   uuidSchema,
 } from "./schemas";
@@ -47,6 +48,7 @@ import {
 // Encodes: entering won/lost → set closedAt=now() if null (preserve if set);
 // entering open stage → clear closedAt. No stage change → sentinel undefined.
 import { resolveClosedAt } from "./lib/closed-at";
+import { resolveContactsForImport } from "./lib/import-contact-resolution";
 // Period helpers — pure isomorphic, no server imports. Also exported via the
 // `./lib/period` sub-export so the UI can consume `Period` + `periodSchema`
 // without touching this router barrel.
@@ -67,9 +69,11 @@ export {
   contactUpdateSchema,
   dealCreateSchema,
   dealUpdateSchema,
+  importBatchInputSchema,
+  importRowInputSchema,
   pipelineStageCreateSchema,
 } from "./schemas";
-export type { DealStage } from "./schemas";
+export type { DealStage, ImportBatchInput, ImportRowInput } from "./schemas";
 
 const salesAnalyticsProcedure = moduleProcedure("sales-analytics");
 
@@ -225,6 +229,98 @@ const dealsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Deal not found" });
       }
       return { id: deleted.id };
+    }),
+
+  /**
+   * Batch-import deals (Phase 4 — CSV/Excel import).
+   *
+   * Accepts 1-1000 pre-validated rows from the client. Despite client-side
+   * validation, EVERY field is re-validated here (defence-in-depth).
+   *
+   * Contact resolution strategy:
+   *   1. Load ALL existing contacts for this org (one SELECT).
+   *   2. Resolve dedup/match via the pure `resolveContactsForImport` helper.
+   *   3. Atomically INSERT new contacts then INSERT all deals in a single
+   *      transaction — any failure rolls back the entire batch.
+   *
+   * Security:
+   *   - `organizationId` is injected server-side (ctx.activeOrg.id).
+   *   - `ownerId` is always the current session user — never accepted from input.
+   *   - Existing contacts are pre-filtered by org before being passed to the
+   *     resolver (belt + suspenders on top of moduleProcedure's org guard).
+   */
+  importBatch: salesAnalyticsProcedure
+    .input(importBatchInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      // 1. Load existing contacts for this org — scoped by organizationId.
+      //    Only the columns the resolver needs (id, name, email).
+      const existing = await ctx.db
+        .select({
+          id: salesContacts.id,
+          name: salesContacts.name,
+          email: salesContacts.email,
+        })
+        .from(salesContacts)
+        .where(eq(salesContacts.organizationId, ctx.activeOrg.id));
+
+      // 2. Resolve contacts: dedup intra-batch + match against existing.
+      //    Pure function — no DB access.
+      const { resolutions, toCreate, counters } = resolveContactsForImport(
+        input.rows.map((r) => ({
+          name: r.contactName ?? null,
+          email: r.contactEmail ?? null,
+        })),
+        existing,
+      );
+
+      // 3. Pre-compute closedAt for each row (stage-driven rule, new deal →
+      //    currentClosedAt = null).
+      const now = new Date();
+      const dealRowsToInsert = input.rows.map((r, i) => {
+        // resolveClosedAt: null currentClosedAt + new stage → now for won/lost,
+        // null for open stages. The ternary guards the `undefined` sentinel
+        // (should never occur here since r.stage is always defined, but is
+        // required for type-correctness given ClosedAtResolution = Date|null|undefined).
+        const closedAtResolved = resolveClosedAt(null, r.stage, now);
+        return {
+          organizationId: ctx.activeOrg.id,
+          name: r.name,
+          stage: r.stage,
+          // numeric(14,2) expects a string at the Drizzle layer.
+          amount: r.amount.toFixed(2),
+          // ownerId is always the authenticated user — never from the input payload.
+          ownerId: ctx.session.user.id,
+          contactId: resolutions[i]?.contactId ?? null,
+          closedAt: closedAtResolved instanceof Date ? closedAtResolved : null,
+        };
+      });
+
+      // 4. Atomic transaction: INSERT contacts first (so deal FK-like references
+      //    are already present), then INSERT all deals.
+      //    Any throw inside the callback causes a full rollback.
+      //
+      //    Driver note: we use `drizzle-orm/neon-serverless` with a Pool
+      //    connection (NOT neon-http), which supports multi-statement transactions.
+      return ctx.db.transaction(async (tx) => {
+        if (toCreate.length > 0) {
+          await tx.insert(salesContacts).values(
+            toCreate.map((c) => ({
+              id: c.id,
+              organizationId: ctx.activeOrg.id,
+              name: c.name,
+              email: c.email,
+            })),
+          );
+        }
+
+        await tx.insert(salesDeals).values(dealRowsToInsert);
+
+        return {
+          dealsCreated: dealRowsToInsert.length,
+          contactsCreated: counters.createdCount,
+          contactsLinked: counters.linkedCount,
+        };
+      });
     }),
 });
 

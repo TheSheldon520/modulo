@@ -192,9 +192,112 @@
           "loadingFailed": "Failed to load the dashboard. Please refresh."
         }
       },
+      "import": {
+        "title": "Import",
+        "description": "Import your deals from a CSV or Excel file.",
+        "upload": {
+          "title": "Drop a file here",
+          "helper": "or click to browse",
+          "formats": "CSV, XLSX, XLS -- max 10 MB",
+          "cta": "Choose a file",
+          "parsing": "Parsing file...",
+          "aria": "File drop zone"
+        },
+        "errors": {
+          "UNSUPPORTED_FORMAT": "Unsupported format. Use a CSV, XLSX or XLS file.",
+          "EMPTY_FILE": "The file contains no usable rows.",
+          "PARSE_FAILED": "Unable to read the file.",
+          "FILE_TOO_LARGE": "The file exceeds 10 MB. Reduce its size before importing.",
+          "retry": "Try another file",
+          "importFailed": "Import failed. No data was saved. Please try again."
+        },
+        "preview": {
+          "header": "File: {fileName} -- {count, plural, =0 {0 rows} =1 {1 row} other {{count} rows}} detected",
+          "truncatedHint": "Preview: first 50 rows out of {total}",
+          "sheetName": "Sheet: {name}",
+          "reset": "Choose another file",
+          "emptyCell": "Empty cell"
+        },
+        "hint": {
+          "title": "How it works",
+          "description": "Drag and drop a CSV or Excel file to preview its rows. The next step will let you map columns to deal fields."
+        },
+        "mapping": {
+          "title": "Map your columns",
+          "description": "Tell us which deal field each column in your file corresponds to.",
+          "unmapped": "Not mapped",
+          "required": "Required",
+          "continueLabel": "Continue",
+          "missingRequired": "Map the following fields: {fields}",
+          "fields": {
+            "name":          { "label": "Deal name",      "helper": "The title shown in the pipeline" },
+            "amount":        { "label": "Amount",          "helper": "In euros, no symbol" },
+            "stage":         { "label": "Stage",           "helper": "lead, qualified, proposal, won or lost" },
+            "contact_name":  { "label": "Contact name",   "helper": "Optional" },
+            "contact_email": { "label": "Contact email",  "helper": "Optional" }
+          },
+          "fileSummary": "File: {fileName} -- {count, plural, =1 {1 row} other {{count} rows}}",
+          "reset": "Choose another file"
+        },
+        "validation": {
+          "title": "Review your data",
+          "description": "Each row is validated against the expected deal format. Rows with errors will be skipped during import.",
+          "counters": {
+            "valid": "{count, plural, =0 {0 valid} =1 {1 valid} other {{count} valid}}",
+            "error": "{count, plural, =0 {0 with errors} =1 {1 with errors} other {{count} with errors}}"
+          },
+          "columns": {
+            "index": "#",
+            "status": "Status",
+            "name": "Name",
+            "amount": "Amount",
+            "stage": "Stage",
+            "contact": "Contact",
+            "email": "Email",
+            "errors": "Errors"
+          },
+          "status": {
+            "valid": "Valid",
+            "error": "Error"
+          },
+          "errors": {
+            "NAME_REQUIRED": "Name required",
+            "AMOUNT_REQUIRED": "Amount required",
+            "AMOUNT_INVALID": "Invalid amount",
+            "AMOUNT_NEGATIVE": "Negative amount not allowed",
+            "STAGE_REQUIRED": "Stage required",
+            "STAGE_INVALID": "Stage not recognised (accepted values: Lead, Qualified, Proposal, Won, Lost)",
+            "EMAIL_INVALID": "Invalid email"
+          },
+          "truncatedHint": "Preview: first {shown} rows out of {total}",
+          "willSkip": "{count, plural, =1 {1 row with errors will be skipped} other {{count} rows with errors will be skipped}}",
+          "back": "Back",
+          "submitLoading": "Importing…",
+          "continueLabel": "{count, plural, =0 {Nothing to import} =1 {Import 1 deal} other {Import {count} deals}}"
+        },
+        "importing": {
+          "title": "Import in progress...",
+          "subtitle": "{count, plural, =1 {Creating 1 deal in your pipeline} other {Creating {count} deals in your pipeline}}",
+          "dontClose": "Please do not close this page"
+        },
+        "report": {
+          "title": "Import complete",
+          "stats": {
+            "dealsCreated": "{count, plural, =1 {1 deal created} other {{count} deals created}}",
+            "dealsCreatedLabel": "Deals created",
+            "contactsCreatedLabel": "Contacts created",
+            "contactsLinkedLabel": "Contacts linked",
+            "skippedLabel": "Rows skipped"
+          },
+          "viewDeals": "View deals",
+          "importAnother": "Import another file"
+        }
+      },
       "deals": {
         "title": "Deals",
         "newDeal": "New deal",
+        "importCta": "Import",
+        "importCtaAria": "Import deals from a file",
         "empty": {
           "title": "No deals yet",
           "description": "Create your first deal to get started.",

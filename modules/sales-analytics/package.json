@@ -10,7 +10,8 @@
     "./config": "./module.config.ts",
     "./lib/period": "./lib/period.ts",
     "./lib/period-presets": "./lib/period-presets.ts",
-    "./lib/stages": "./lib/stages.ts"
+    "./lib/stages": "./lib/stages.ts",
+    "./lib/import-contact-resolution": "./lib/import-contact-resolution.ts"
   },
   "files": [
     "module.config.ts",
@@ -20,6 +21,7 @@
     "lib/period.ts",
     "lib/period-presets.ts",
     "lib/stages.ts",
+    "lib/import-contact-resolution.ts",
     "README.md"
   ],
   "scripts": {

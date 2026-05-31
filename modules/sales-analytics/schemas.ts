@@ -123,3 +123,36 @@ export const pipelineStageCreateSchema = z.object({
 export type PipelineStageCreateInput = z.infer<
   typeof pipelineStageCreateSchema
 >;
+
+// ---------------------------------------------------------------------------
+// Import batch (Phase 4 — CSV/Excel import)
+// ---------------------------------------------------------------------------
+
+/**
+ * Server re-validation schema for a single import row sent by the Phase 3
+ * client-side parser. This is the DEFENCE-IN-DEPTH layer — never trust the
+ * wire payload even though the client already validated via `import-validate.ts`.
+ *
+ * AMOUNT semantics: >= 0 (zero is valid — a free / promotional deal).
+ * Stored as a JS number at the wire layer (the client has already parsed the
+ * raw string); the router converts to `toFixed(2)` string for the Drizzle
+ * `numeric(14,2)` column.
+ *
+ * contactName / contactEmail: the client sends `null` when absent/empty.
+ * Both are optional at the schema level so callers may omit the fields
+ * entirely (equivalent to null).
+ */
+export const importRowInputSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  amount: z.number().nonnegative().finite(),
+  stage: z.enum(DEAL_STAGES),
+  contactName: z.string().trim().min(1).max(200).nullable().optional(),
+  contactEmail: z.string().trim().email().max(320).nullable().optional(),
+});
+
+export const importBatchInputSchema = z.object({
+  rows: z.array(importRowInputSchema).min(1).max(1000),
+});
+
+export type ImportRowInput = z.infer<typeof importRowInputSchema>;
+export type ImportBatchInput = z.infer<typeof importBatchInputSchema>;
