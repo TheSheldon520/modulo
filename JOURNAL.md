@@ -8,6 +8,54 @@
 
 ---
 
+## 📅 2026-06-01 — Session 15 — T1.6 Import CSV/XLSX deals
+
+### 🎯 Objectif de la session
+Livrer T1.6 (Import CSV/Excel) : feature complète d'import en masse de deals depuis un fichier, en 4 phases atomiques (parsing client → mapping colonnes → validation par ligne → import effectif batch). Page `/m/sales/import`, step machine 5 états, transaction serveur atomique, rapport final. Sequencée + checkpoints visuels à chaque phase.
+
+### ✅ Tickets terminés
+- **T1.6 (commit `3ddf823`)** — Import CSV/XLSX deals complet. **26 fichiers, 4358 insertions**. 4 phases UI + 1 mutation backend + pre-commit + 4 fixes post-review :
+  - **Phase 1** — Page `/m/sales/import`, dropzone D&D + picker, parsing 100 % client (papaparse 5.5.3 CSV avec auto-delimiter `;` Excel FR + xlsx 0.18.5 SheetJS, **dynamic import** → route 7 kB), preview brute 50 lignes, lib pure `import-parse` (detectFormat / normalizeHeaders / dropEmptyRows / parseImportFile) + 35 tests Vitest. Limite 10 MB. xlsx CVE prototype-pollution NON exploitable (client-only sur fichier user), tracée.
+  - **Phase 2** — Mapping colonnes : 5 champs cibles (name/amount/stage requis + contact_name/contact_email optionnels), auto-détection synonymes FR/EN normalisés (NFD + strip diacritics + uniformisation séparateurs), sentinel `UNMAPPED` (Radix interdit `value=""`), garde-fou "Continuer" + message d'aide. Lib pure `import-mapping` + 36 tests. **Step machine** introduite `"upload" | "mapping"` (extensible).
+  - **Phase 3** — Validation Zod par ligne : `parseAmount` FR-tolérant (NBSP/narrow NBSP/thin space + virgule décimale), `resolveStageValue` accent-insensible accepte enum EN + libellés FR, Zod `.email()`. Table preview avec lignes en erreur surlignées (`border-l-2 border-l-danger`), compteurs ICU plural, codes d'erreur discriminated union → messages i18n. Lib pure `import-validate` + 45 tests.
+  - **Phase 4** — **Backend** : schéma Zod canonique serveur (`importRowInputSchema`/`importBatchInputSchema`, max 1000 lignes), mutation `dealsRouter.importBatch` en **transaction Drizzle atomique** (neon-serverless Pool), lib pure `resolveContactsForImport` (match email > nom > null, dedup intra-batch via Map, `linkedCount` = contacts DISTINCTS préexistants matchés via Set) + 34 tests. **UI** : step machine étendue à 5 états + `ImportingStep` (loader indéterminé) + `ImportReport` (4 stats + lien Deals), SubmitButton convention, invalidation `deals.list` au succès.
+  - **Pre-commit** : sweep accents FR sur tout `modules.salesAnalytics.import.*` (29 corrections) + bouton "Importer" (outline) sur barre Deals à gauche de "+ Nouveau deal" (orgSlug propagé). **Command palette skippée** : pas de pattern "module contribue ses commandes" (`ModuleConfig` sans champ `commands`, `buildCommands` hardcodé) → garde-fou architectural respecté, ticket séparé tracé.
+  - **4 fixes post-review** (review-before-commit avant push) : (1) **CRITICAL** — double clé JSON `"errors"` dans `import.*` fr+en → "last wins" écrasait silencieusement UNSUPPORTED_FORMAT/EMPTY_FILE/PARSE_FAILED/FILE_TOO_LARGE/retry (régression silencieuse de carry-over A introduite en Phase 4), fix par fusion ; (2) **IMPORTANT** — `isParsing` jamais `true` côté parent → callback `onParsingStart` ajouté ; (3) **IMPORTANT** — garde `draftRows.length >= 0` (toujours vraie) → `> 0` ; (4) **Nit** — clé orpheline `importing.buttonLoading` supprimée.
+  - **Vérifs racine finales** : typecheck 6/6 · lint 5/5 · test **368 passed / 1 skipped** · build OK (route 7 kB).
+  - **Perf** : 1000 lignes < 10s confirmée. **Upsert two-pass** validé manuellement (run 1 = 6 deals / 3 contacts créés / 0 liés ; run 2 = 0 contact créé + `linkedCount` distinct confirmé via tests).
+
+### 🧠 Décisions structurantes prises
+- **Parsing 100 % client** (zéro upload serveur du fichier brut) : papaparse + xlsx en **dynamic import** pour ne pas alourdir le bundle initial. La page `/m/sales/import` reste à 7 kB en first-load.
+- **Sécurité serveur** : re-validation Zod canonique (`importRowInputSchema` côté serveur via `moduleProcedure`), JAMAIS confiance aux libs de parsing client. `organizationId` + `ownerId` posés serveur depuis `ctx`, jamais depuis l'input. Défense en profondeur.
+- **`linkedCount` = contacts distincts** (pas row count) : décidé après FIX 2 review. Sémantique = "combien de contacts pré-existants ont reçu au moins un lien dans ce batch". Implémentation `Set<string>` + 3 tests dédiés. Le bon message UX pour "Contacts liés".
+- **LUT `STAGE_FR_LABELS` hardcodée** dans `import-validate.ts` (avec libellés ACCENTUÉS Lead/Qualifié/Proposition/Gagné/Perdu) + **test d'isomorphisme** contre `fr.json#modules.salesAnalytics.deals.stages.*` : la lib reste isomorphique pure (pas de next-intl runtime), le test verrouille la désynchronisation. `STAGES` (module) porte des clés i18n, pas les libellés FR — impossible à dériver directement.
+- **Validation montant import = `>= 0`** (cohérent avec update). **Outlier connu** : `dealCreateSchema.amount` est en `>0` via regex (incohérence T1.5). Harmonisation tracée comme dette.
+- **Progress indéterminé** (pas de chunk + progress bar 0-100%) : la transaction Drizzle est atomique, on ne peut pas chunker un import partiel sans casser l'atomicité. Pour ≤ 1000 lignes en < 10s, l'indéterminé est honnête. Chunk + job queue = YAGNI tant qu'on ne vise pas 100k lignes.
+- **Sentinel `UNMAPPED = "__unmapped__"`** : nouvelle occurrence du pattern Modulo (NO_CONTACT, ALL_OWNERS, UNMAPPED). Convention re-confirmée : tout Radix `Select` avec option "aucun/non assigné" passe par un sentinel non-vide mappé aux frontières.
+- **Command palette `sales.import-csv` SKIPPÉE** : le pattern "module contribue ses commandes via `module.config`" n'existe pas. L'ajouter proprement = nouvelle convention architecturale qui touche 4 packages (`@modulo/api/modules/types`, `@modulo/ui/lib/commands/build-commands`, `useCommands`, `layout.tsx`) + soulève la question de la résolution i18n des labels module-side. Reporté en ticket séparé. Garde-fou respecté.
+
+### ⚠️ Points d'attention pour les prochaines sessions
+- **Dette outillage CRITIQUE — gate aveugle aux i18n / JSON** : 3 problèmes i18n/JSON ont passé typecheck + lint + tests + build verts cette session :
+  - Clé manquante `submitLoading` (cross-scope)
+  - Clé dupliquée `errors` (last-wins JSON)
+  - Scope erroné `t("importing.xxx")` depuis un namespace `validation`
+  - Seul le checkpoint visuel les a chopés. **Ticket à monter** : (a) règle ESLint `no-duplicate-keys` sur les JSON i18n, (b) check de couverture i18n (toute clé `t(...)` doit exister dans fr+en, et vice-versa).
+- **xlsx 0.18.5** : CVE prototype-pollution NON exploitable (parsing client sur fichier de l'utilisateur lui-même, jamais server-side). Documentée en commentaire dans `import-parse.ts`. Migration tracée si parsing XLSX devient server-side un jour.
+- **Validation montant** : `dealCreateSchema.amount` regex `^\d+(\.\d{1,2})?$` rejette les nombres négatifs mais accepte aussi "0" via `\d+`. Donc en pratique = `>= 0`. Désaccord cosmétique avec la note "create reste > 0" — à harmoniser proprement (ticket dédié).
+- **Perf Kanban** : non testée à fort volume depuis T1.5. Avec 1000+ cartes dnd-kit pourrait laguer. Tracé pour T1.10 (virtualisation ou pagination).
+- **Rappels antérieurs** : reconfirmer la dette `deal.stage as DealStage` (pgEnum) S14, `DATE_FORMATTER` locale `fr-FR` hardcodée S14, statut `color` sur `sales_pipeline_stages` S12-13.
+
+### 🚧 En cours / pas fini
+Aucun chantier ouvert. Working tree propre après `3ddf823`. T1.6 clôturé en 1 commit atomique.
+
+### 🔜 Prochain ticket
+- **T1.7 — Page "Performance"**. Analyse fine performance commerciale : table par commercial (deals gagnés / CA / taux conversion / deal size moyen), funnel de conversion par étape, cycle de vente moyen, cohort analysis (deals créés en M ferment en M+N en moyenne). Critère : graphes lisibles, exportables PNG.
+
+### 💬 Notes libres
+T1.6 livré en 4 phases backend+UI sur 1 grosse session, avec délégation parallèle backend/UI sur Phase 4 (deux sub-agents). Le code-reviewer a chopé un blocker silencieux (double clé JSON) que le pipeline CI n'aurait jamais vu — leçon outillage forte. Pattern "lib pure isolée + tests Vitest" confirmé une 4e fois (parse / mapping / validate / contact-resolution). Garde-fou architectural appliqué pour la première fois sur la command palette (refus de bricoler, ticket reporté). Phase 1 à 6/10 tickets (T1.6/T1.10). Prochain : T1.7 Performance.
+
+---
+
 ## 📅 2026-05-30 — Session 14 — T1.5 Page Deals (Kanban + drag&drop + side panel + filtres)
 
 ### 🎯 Objectif de la session
