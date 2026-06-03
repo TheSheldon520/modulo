@@ -2,16 +2,26 @@
 //
 // Unit tests for the makeDealUpdateFormSchema factory.
 // Pure node environment — no DOM, no jsdom.
-// The factory is called with an identity-stub t() so validation messages
-// are the raw i18n key (predictable in tests, no locale loading required).
+// The factory is called with a stub messages object whose values match the
+// i18n key name so validation messages are predictable in assertions (the
+// same invariant the previous identity-translator stub provided, but with
+// a typed object that matches the production call-site shape).
 
 import { describe, expect, it } from "vitest";
 
-import { makeDealUpdateFormSchema } from "./deal-update-form-schema";
+import {
+  makeDealUpdateFormSchema,
+  type DealUpdateFormSchemaMessages,
+} from "./deal-update-form-schema";
 
-// Identity stub: returns the key as-is so we can test the exact key used
-const t = (key: string) => key;
-const schema = makeDealUpdateFormSchema(t);
+// Stub messages: each value is the i18n key the corresponding call-site uses,
+// so safeParse-error messages are deterministic and locale-independent.
+const messages: DealUpdateFormSchemaMessages = {
+  nameRequired: "sidePanel.errors.nameRequired",
+  nameTooLong: "sidePanel.errors.nameTooLong",
+  amountInvalid: "sidePanel.errors.amountInvalid",
+};
+const schema = makeDealUpdateFormSchema(messages);
 
 // ---------------------------------------------------------------------------
 // name

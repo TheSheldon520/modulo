@@ -6,6 +6,7 @@
 import { useTranslations } from "next-intl";
 import { TrendingUp } from "lucide-react";
 
+import { type DealStage } from "@modulo/sales-analytics/schemas";
 import {
   Table,
   TableBody,
@@ -165,7 +166,10 @@ export function DealsTable({ filteredDeals }: DealsTableProps) {
                 <span
                   className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getStageBadgeClasses(deal.stage)}`}
                 >
-                  {t(`stages.${deal.stage}`)}
+                  {/* deal.stage comes from tRPC as `string`; narrow to the
+                      DealStage union (same convention as deal-side-panel /
+                      deals-kanban — S14 dette). */}
+                  {t(`stages.${deal.stage as DealStage}`)}
                 </span>
               </TableCell>
               <TableCell className="text-text-secondary">

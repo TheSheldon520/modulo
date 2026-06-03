@@ -227,7 +227,13 @@ function DealEditForm({ deal, onClose }: DealEditFormProps) {
     e.preventDefault();
     setFieldError(null);
 
-    const schema = makeDealUpdateFormSchema(t);
+    // Resolve i18n keys at the call-site (Piste 3) so next-intl's literal-key
+    // narrowing fires here, then hand a plain messages object to the factory.
+    const schema = makeDealUpdateFormSchema({
+      nameRequired: t("sidePanel.errors.nameRequired"),
+      nameTooLong: t("sidePanel.errors.nameTooLong"),
+      amountInvalid: t("sidePanel.errors.amountInvalid"),
+    });
 
     // Normalise amount: same pattern as NewDealDialog — convert HTML number
     // input value to the Zod-expected decimal string format.

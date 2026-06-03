@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { type DealStage } from "@modulo/sales-analytics/schemas";
 import {
   Table,
   TableBody,
@@ -88,7 +89,10 @@ export function RecentDealsTable({ deals, orgSlug }: RecentDealsTableProps) {
                 <span
                   className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getStageBadgeClasses(deal.stage)}`}
                 >
-                  {t(`deals.stages.${deal.stage}`)}
+                  {/* deal.stage comes from tRPC as `string`; narrow to the
+                      DealStage union (same convention as deal-side-panel /
+                      deals-kanban — S14 dette). */}
+                  {t(`deals.stages.${deal.stage as DealStage}`)}
                 </span>
               </TableCell>
               <TableCell className="text-text-secondary">

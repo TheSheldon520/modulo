@@ -1,16 +1,32 @@
 // apps/web/lib/auth-schemas.test.ts
 //
-// We pass an identity translator so error messages collapse to the message
-// key — that's stable, locale-agnostic, and lets us assert on exact strings.
+// Stub messages match the i18n key name (e.g. `invalidEmail: "errors.invalidEmail"`)
+// so assertions stay locale-agnostic and compare exact strings — the same
+// invariant the previous identity-translator stub provided, but with a typed
+// object that matches the production call-site shape.
 
 import { describe, expect, it } from "vitest";
 
-import { makeLoginSchema, makeSignupSchema } from "./auth-schemas";
+import {
+  makeLoginSchema,
+  makeSignupSchema,
+  type LoginSchemaMessages,
+  type SignupSchemaMessages,
+} from "./auth-schemas";
 
-const identity = (key: string) => key;
+const loginMessages: LoginSchemaMessages = {
+  invalidEmail: "errors.invalidEmail",
+  passwordRequired: "errors.passwordRequired",
+};
+
+const signupMessages: SignupSchemaMessages = {
+  nameRequired: "errors.nameRequired",
+  invalidEmail: "errors.invalidEmail",
+  passwordTooShort: "errors.passwordTooShort",
+};
 
 describe("makeLoginSchema", () => {
-  const schema = makeLoginSchema(identity);
+  const schema = makeLoginSchema(loginMessages);
 
   it("accepts a valid email + non-empty password", () => {
     const result = schema.safeParse({
@@ -41,7 +57,7 @@ describe("makeLoginSchema", () => {
 });
 
 describe("makeSignupSchema", () => {
-  const schema = makeSignupSchema(identity);
+  const schema = makeSignupSchema(signupMessages);
 
   it("accepts a valid payload", () => {
     const result = schema.safeParse({

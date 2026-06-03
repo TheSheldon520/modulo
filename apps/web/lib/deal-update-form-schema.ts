@@ -1,9 +1,10 @@
 // apps/web/lib/deal-update-form-schema.ts
 //
 // Zod schema factory for the "Edit Deal" side panel form. Mirrors the pattern
-// of `deal-form-schema.ts` (new deal dialog): the factory takes the next-intl
-// `t()` so validation messages stay localized, while the schema itself remains
-// testable in isolation with an identity-stub translator.
+// of `deal-form-schema.ts` (new deal dialog): the factory takes a resolved
+// messages object so validation messages stay localized at the call-site (via
+// next-intl `t()`), while the schema itself remains testable in isolation
+// with a plain stub object.
 //
 // This schema is *distinct* from `dealUpdateSchema` exported by the backend
 // router (which carries English-only messages and has no i18n dependency). The
@@ -21,21 +22,23 @@ import { z } from "zod";
 // pulling @trpc/server into the browser bundle.
 import { DEAL_STAGES } from "@modulo/sales-analytics/schemas";
 
-import type { TranslateFn } from "./auth-schemas";
+/** Resolved error messages consumed by `makeDealUpdateFormSchema`. */
+export interface DealUpdateFormSchemaMessages {
+  nameRequired: string;
+  nameTooLong: string;
+  amountInvalid: string;
+}
 
-export function makeDealUpdateFormSchema(t: TranslateFn) {
+export function makeDealUpdateFormSchema(
+  messages: DealUpdateFormSchemaMessages,
+) {
   return z.object({
     name: z
       .string()
       .trim()
-      .min(1, t("sidePanel.errors.nameRequired"))
-      .max(200, t("sidePanel.errors.nameTooLong")),
-    amount: z
-      .string()
-      .regex(
-        /^\d+(\.\d{1,2})?$/,
-        t("sidePanel.errors.amountInvalid"),
-      ),
+      .min(1, messages.nameRequired)
+      .max(200, messages.nameTooLong),
+    amount: z.string().regex(/^\d+(\.\d{1,2})?$/, messages.amountInvalid),
     stage: z.enum(DEAL_STAGES),
     // contactId: empty string = no contact selected (maps to null at wire).
     // UUID string = contact selected. The component normalises the value before

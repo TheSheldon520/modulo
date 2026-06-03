@@ -41,7 +41,15 @@ export default function CreateOrgPage() {
   const [userEditedSlug, setUserEditedSlug] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const createOrgSchema = makeCreateOrgSchema(t);
+  // Resolve i18n keys at the call-site (Piste 3) so next-intl's literal-key
+  // narrowing fires here, then hand a plain messages object to the factory.
+  const createOrgSchema = makeCreateOrgSchema({
+    nameRequired: t("errors.nameRequired"),
+    nameTooLong: t("errors.nameTooLong"),
+    slugTooShort: t("errors.slugTooShort"),
+    slugTooLong: t("errors.slugTooLong"),
+    slugFormat: t("errors.slugFormat"),
+  });
 
   const createOrg = trpc.organizations.create.useMutation();
   const loading = createOrg.isPending;

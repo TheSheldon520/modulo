@@ -1,16 +1,27 @@
 // apps/web/lib/onboarding-schemas.test.ts
 //
-// Identity translator → error messages collapse to their message key, which
-// is stable and locale-agnostic for assertions.
+// Stub messages match the i18n key name (e.g. `nameRequired: "errors.nameRequired"`)
+// so assertions stay locale-agnostic and compare exact strings — the same
+// invariant the previous identity-translator stub provided, but with a typed
+// object that matches the production call-site shape.
 
 import { describe, expect, it } from "vitest";
 
-import { makeCreateOrgSchema } from "./onboarding-schemas";
+import {
+  makeCreateOrgSchema,
+  type CreateOrgSchemaMessages,
+} from "./onboarding-schemas";
 
-const identity = (key: string) => key;
+const messages: CreateOrgSchemaMessages = {
+  nameRequired: "errors.nameRequired",
+  nameTooLong: "errors.nameTooLong",
+  slugTooShort: "errors.slugTooShort",
+  slugTooLong: "errors.slugTooLong",
+  slugFormat: "errors.slugFormat",
+};
 
 describe("makeCreateOrgSchema", () => {
-  const schema = makeCreateOrgSchema(identity);
+  const schema = makeCreateOrgSchema(messages);
 
   it("accepts a valid name + slug", () => {
     const result = schema.safeParse({

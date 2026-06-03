@@ -34,6 +34,15 @@ type ActivationStatus =
   | "coming_soon";
 
 /**
+ * Literal union of the `settings.billing.*` i18n keys consumed by the status
+ * badge below. Declared at module scope (rather than inside `StatusBlock`)
+ * so the binding is visible without scrolling and reusable if a future
+ * surface needs the same labels. Aligned with next-intl's narrow literal-key
+ * typing — `string` would silently let typos through.
+ */
+type BillingStatusKey = "activated" | "pastDue" | "canceled" | "comingSoon";
+
+/**
  * tRPC error data may carry a `code` string. Narrow `unknown` to extract it
  * without an `any` cast — same pattern used in `/onboarding/create-org`.
  */
@@ -236,7 +245,7 @@ function StatusBlock({
         ? "bg-warning/10 text-warning"
         : "bg-surface-3 text-text-secondary";
 
-  const labelKey: Record<Exclude<ActivationStatus, "inactive">, string> = {
+  const labelKey: Record<Exclude<ActivationStatus, "inactive">, BillingStatusKey> = {
     active: "activated",
     trial: "activated",
     past_due: "pastDue",

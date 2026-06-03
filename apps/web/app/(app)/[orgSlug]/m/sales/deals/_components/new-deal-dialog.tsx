@@ -79,7 +79,13 @@ export function NewDealDialog({ ownerId, newDealLabel }: NewDealDialogProps) {
     e.preventDefault();
     setFieldError(null);
 
-    const schema = makeDealCreateFormSchema(t);
+    // Resolve i18n keys at the call-site (Piste 3) so next-intl's literal-key
+    // narrowing fires here, then hand a plain messages object to the factory.
+    const schema = makeDealCreateFormSchema({
+      nameRequired: t("dialogs.newDeal.errors.nameRequired"),
+      nameTooLong: t("dialogs.newDeal.errors.nameTooLong"),
+      amountInvalid: t("dialogs.newDeal.errors.amountInvalid"),
+    });
 
     // Convert the HTML number input value to the Zod-expected decimal string.
     // HTML <input type="number"> gives us a string like "12500.5" — we parse

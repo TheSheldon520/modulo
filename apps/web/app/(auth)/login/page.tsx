@@ -29,8 +29,12 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Factory consumes the next-intl `t()` so Zod error messages stay localized.
-  const loginSchema = makeLoginSchema(t);
+  // Resolve i18n keys at the call-site (Piste 3) so next-intl's literal-key
+  // narrowing fires here, then hand a plain messages object to the factory.
+  const loginSchema = makeLoginSchema({
+    invalidEmail: t("errors.invalidEmail"),
+    passwordRequired: t("errors.passwordRequired"),
+  });
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
