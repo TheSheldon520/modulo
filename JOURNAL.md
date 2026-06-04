@@ -8,6 +8,52 @@
 
 ---
 
+## 📅 2026-06-05 — Session 16 — Outillage i18n/JSON guardrails + cleanup auth pre-T1.7
+
+### 🎯 Objectif de la session
+Avant d'entamer T1.7, solder deux dettes : (1) l'outillage qui rend le gate aveugle aux erreurs i18n/JSON (clé manquante, dupliquée, mauvais scope — tracé S15), et (2) la zone auth (404 post-login découvert en test, dette SubmitButton, polish FR des forms). 4 commits : 1 tooling + 3 auth.
+
+### ✅ Tickets terminés
+- **Outillage i18n/JSON guardrails (commit `445898c`)** — 3 volets :
+  - **Volet A** : `eslint-plugin-jsonc@2.21.1` (pin compat eslint 9.17) + règle `jsonc/no-dupe-keys: error` sur `**/messages/*.json`. Ferme la classe "clé JSON dupliquée silencieuse".
+  - **Volet B1** : `apps/web/lib/i18n-parity.test.ts` — parité fr/en stricte (`collectLeafPaths`, feuille ICU-plural, seuil 180).
+  - **Volet B2** : `apps/web/global.d.ts` augmente `AppConfig.Messages = typeof frMessages` (next-intl 4.12) → toutes les clés `t(...)` sont typecheckées. Ferme la classe "clé manquante / mauvais scope".
+  - B2 a fait remonter 8 erreurs latentes : 3 narrowings triviaux + 5 factories Zod (`makeLoginSchema`/`makeSignupSchema`/`makeCreateOrgSchema`/`makeDealCreateFormSchema`/`makeDealUpdateFormSchema`).
+  - **Vérifs** : typecheck 6/6 · lint 5/5 · test 256+1 skipped · build OK.
+- **fix(auth) redirection post-login 404 (commit `7b82caa`)** — 6 fichiers. Bug PRÉ-EXISTANT : 4 call-sites pointaient vers `/dashboard` (route inexistante → 404 silencieux, masqué par la persistance des sessions). Découverte clé : `/` (`app/page.tsx`) est DÉJÀ le résolveur canonique (le middleware bounce dessus by design). Fix : 4 sites → `/`. `resolveActiveOrgForUser` étendu de `id` à `{id, slug}` (1 query au lieu de 2, source unique + JSDoc invariant). Résolveur `/` durci : les 2 branches fallback (cookie absent + cookie → org non-membre) convergent sur la même source → invariant unique : toute membership valide → dashboard, onboarding uniquement si 0 org. Ferme l'edge "cookie staleness post-login". Tests +1 + lock-in shape `{id, slug}`.
+- **feat(T0.6.5b) SubmitButton login/signup (commit `b3e9162`)** — 2 fichiers. `<Button type="submit">` → `<SubmitButton isLoading={loading}>` (CLAUDE.md règle 5), câblé sur l'état `loading` existant, clés i18n existantes (0 ajout). Anti-double-submit + spinner + aria-busy.
+- **fix(auth) polish FR forms (commit `378e266`)** — 6 fichiers (2 nouveaux). 3 volets :
+  - `noValidate` sur les 2 forms → validation Zod FR brandée remplace les popups natifs du navigateur.
+  - Lib pure `auth-error-messages.ts` (`mapAuthErrorMessage`, mappe les codes Better Auth par CODE jamais par texte → clés i18n FR/EN, fallback générique). Nouveau bloc `auth.errors.ba.*`. 16 tests.
+  - **Sécurité** : `INVALID_EMAIL_OR_PASSWORD` et `CREDENTIAL_ACCOUNT_NOT_FOUND` collapsent sur la même clé (anti-énumération, verrouillé par test) ; jamais de surface du message upstream EN (verrouillé par test).
+  - Nav : `router.push` retiré côté LOGIN (le `redirectPlugin` BA navigue quand `signIn.email` renvoie `redirect:true`) ; CONSERVÉ côté SIGNUP car `signUp.email` renvoie `{token,user}` sans redirect (asymétrie BA documentée en commentaire). `setLoading(false)` en branche erreur uniquement (login + signup symétriques).
+  - **Vérifs (--force, 0 cached)** : typecheck 6/6 · lint 5/5 · test 387+1 skipped · build réel OK (Next 15.5.18, 11/11 pages).
+
+### 🧠 Décisions structurantes prises
+- **Factories Zod : Option 3 (résolution au call-site)**. Le `TranslateFn` est retiré du codebase ; les factories prennent des objets `<X>SchemaMessages` (nouvelle convention). Rationale : le typage next-intl (B2) rend obsolète le `TranslateFn`-pour-testabilité de T0.6.5. 35 tests réécrits.
+- **`/` est LE résolveur canonique unique** : on aligne les call-sites dessus, PAS un alias `/dashboard` → `/` (YAGNI : `/dashboard` n'a jamais fonctionné, zéro bookmark à préserver). `resolveActiveOrgForUser` = source unique (`{id, slug}`, JSDoc interdit la ré-impl inline).
+- **Invariant résolveur** : toute membership valide → `/[orgSlug]/dashboard` ; onboarding uniquement si 0 org. Les branches "cookie absent" et "cookie → org non-membre" convergent sur la même source (fallback DB = membership la plus récente).
+- **Sécurité anti-énumération** : invalid-creds et credential-not-found rendent le MÊME message (verrouillé par test). Le mapping de `CREDENTIAL_ACCOUNT_NOT_FOUND` est DÉFENSIF (BA 1.4.22 ne l'émet pas via `signIn.email`) — forward-compatible, documenté.
+- **Asymétrie BA signIn/signUp** documentée en commentaire des deux côtés pour qu'un dev futur ne la recasse pas.
+
+### ⚠️ Points d'attention pour les prochaines sessions
+- **Leçon centrale confirmée** : le gate est aveugle au rendu. L'outillage B1/B2 ferme la partie statiquement détectable, mais 3 bugs de cette session n'ont été attrapés QUE par le visuel : loading SubmitButton, messages d'erreur FR, et surtout la **régression nav signup** (retrait du `router.push` alors que `signUp.email` ne redirige pas → user bloqué sur `/signup`). Le checkpoint visuel reste non négociable.
+- **Dette tracée — Route Handler cleanup cookie stale** : le résolveur `/` self-heal via `OrgCookieResync` (useEffect client) ; un Route Handler invalidant proactivement le cookie stale reste à faire (ancien "Phase 1 cleanup"). Non bloquant (convergence/perf).
+- **Dette tracée — test multi-tenant** : ajouter un test spy sur `.where()` verrouillant le filtre `userId` dans `resolveActiveOrgForUser`.
+- **Dette tracée — codes BA en `generic`** : `EMAIL_NOT_VERIFIED` et `FAILED_TO_CREATE_SESSION` tombent volontairement en générique. À mapper AVANT d'activer `requireEmailVerification`. Documenté en JSDoc.
+- **Rappels antérieurs (S15)** : command palette / pattern module-commands, xlsx 0.18.5 CVE non exploitable, perf Kanban T1.10, harmonisation montant (clôturée non-issue), `DATE_FORMATTER fr-FR`, `deal.stage as DealStage`.
+
+### 🚧 En cours / pas fini
+Aucun chantier ouvert. Working tree propre après `378e266`. Bloc cleanup pré-T1.7 bouclé (4 commits).
+
+### 🔜 Prochain ticket
+- **T1.7 — Page "Performance"**. Table par commercial (deals gagnés / CA / taux conversion / deal size moyen), funnel de conversion par étape, cycle de vente moyen, cohort analysis. Critère : graphes lisibles, exportables PNG (nouvelle capacité).
+
+### 💬 Notes libres
+Session "dette" avant feature : fermer la classe de bugs gate-blind (outillage i18n) puis assainir l'auth (404 post-login découvert sur compte frais). Reviewer bien calibré, deux emballements arbitrés : `useTranslations` en RSC flaggé Critical (faux positif — next-intl 4.12 le supporte + pré-existant) et "boucle staleness" auto-dégradée par le reviewer (trackée). Catch orchestrateur clé : la régression nav signup, invisible au gate, confirmée au visuel. Prochain : T1.7.
+
+---
+
 ## 📅 2026-06-01 — Session 15 — T1.6 Import CSV/XLSX deals
 
 ### 🎯 Objectif de la session
