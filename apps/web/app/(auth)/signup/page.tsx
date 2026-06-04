@@ -75,7 +75,7 @@ export default function SignupPage() {
     setLoading(true);
     const { error: authError } = await authClient.signIn.social({
       provider,
-      callbackURL: "/dashboard",
+      callbackURL: "/",
     });
     if (authError) {
       setLoading(false);

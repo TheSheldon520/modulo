@@ -3,13 +3,20 @@
 // Landing page (public) + signed-in bounce. Server Component on purpose:
 //
 //   - Anonymous → render the marketing copy.
-//   - Signed in + active-org cookie present → resolve the slug in the DB,
+//   - Signed in + active-org cookie valid → resolve the slug in the DB,
 //     then `redirect("/<slug>/dashboard")`. The DB hop is required because
 //     the cookie carries the org **id** (stable), not the slug (renamable).
-//   - Signed in + no active-org cookie → `redirect("/onboarding/create-org")`.
-//     The middleware already enforces this for protected routes, but `/` is
-//     OUTSIDE the matcher (so anonymous landing keeps working without a DB
-//     hit) so we re-state the rule here.
+//   - Signed in + (no cookie OR cookie points at an org the user is no
+//     longer a member of) → fall back to `resolveActiveOrgForUser` (the
+//     same SINGLE source of truth the BA `session.create` hook uses to
+//     seed the cookie). Membership found → `/<slug>/dashboard`, the
+//     `OrgCookieResync` component in `[orgSlug]/layout.tsx` re-pins the
+//     cookie on the next render. Zero memberships → `/onboarding/create-org`.
+//   - Signed in + zero memberships → `/onboarding/create-org`.
+//
+// Invariant: any valid membership → dashboard. Onboarding only when the
+// user genuinely has no org. We never bounce a user with a valid org to
+// onboarding just because the cookie path drifted.
 
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -17,7 +24,10 @@ import { and, eq } from "drizzle-orm";
 import { useTranslations } from "next-intl";
 
 import { getAuth } from "@modulo/auth";
-import { ACTIVE_ORG_COOKIE_NAME } from "@modulo/auth/active-org";
+import {
+  ACTIVE_ORG_COOKIE_NAME,
+  resolveActiveOrgForUser,
+} from "@modulo/auth/active-org";
 import { getDb } from "@modulo/db/client";
 import { memberships, organizations } from "@modulo/db/schema";
 
@@ -38,6 +48,21 @@ function LandingCopy() {
   );
 }
 
+/**
+ * Local helper: delegate to the SHARED resolver and return the path to
+ * redirect to. Centralised so both fallback branches (no cookie / stale
+ * cookie) go through the exact same code path — no chance of divergence.
+ *
+ * Returns a path string rather than calling `redirect()` itself so callers
+ * can chain `redirect(await resolveFallbackPath(...))` in tail position,
+ * which TypeScript correctly recognises as a terminal `never` and uses to
+ * narrow types past the call site.
+ */
+async function resolveFallbackPath(userId: string): Promise<string> {
+  const fallback = await resolveActiveOrgForUser(getDb(), userId);
+  return fallback ? `/${fallback.slug}/dashboard` : "/onboarding/create-org";
+}
+
 export default async function HomePage() {
   // `getAuth()` is the lazy factory — must be called inline. Never store in a
   // top-level const (that re-introduces the eager pattern T0.10 removed).
@@ -50,25 +75,17 @@ export default async function HomePage() {
   const cookieStore = await cookies();
   const activeOrgId = cookieStore.get(ACTIVE_ORG_COOKIE_NAME)?.value;
 
+  // No active-org cookie → fall back to the shared resolver. The BA
+  // session-create hook seeds this cookie on every login path (email/OAuth/
+  // magic-link — see packages/auth/src/index.ts), but the hook can fail
+  // silently, the cookie can expire (30d), or the user can clear it.
   if (!activeOrgId) {
-    redirect("/onboarding/create-org");
+    redirect(await resolveFallbackPath(session.user.id));
   }
 
-  // Cookie carries the org **id** (stable), not the slug (renamable). Resolve
-  // the slug, scoped to the current user's memberships so a tampered or stale
-  // cookie can't leak a tenant route the user has no access to. SQL filters
-  // on `user_id AND organization_id` (vs loading all memberships and filtering
-  // in JS) — one row max, faster, and aligns the access boundary with the DB
-  // engine rather than the application layer.
-  //
-  // A cookie pointing at a revoked / deleted org → bounce to onboarding. We
-  // don't clear the stale cookie here because `cookies().set()` is forbidden
-  // in a Server Component (Next 15 constraint). The next tRPC call routed
-  // through `createTRPCContext` won't clear it either when it points to an
-  // org with no membership for the user (only the `rows.length === 0` branch
-  // clears it). Tracked as Phase 1 cleanup: a dedicated Route Handler that
-  // clears the cookie before redirecting, or migrating this redirect into
-  // the middleware (which can write cookies).
+  // Cookie present → try to honor it. Scope the lookup to the user's
+  // memberships so a tampered or stale cookie cannot leak a tenant route
+  // the user has no access to.
   const db = getDb();
   const rows = await db
     .select({ slug: organizations.slug })
@@ -83,10 +100,15 @@ export default async function HomePage() {
     .limit(1);
 
   const matched = rows[0];
-
-  if (!matched) {
-    redirect("/onboarding/create-org");
+  if (matched) {
+    redirect(`/${matched.slug}/dashboard`);
   }
 
-  redirect(`/${matched.slug}/dashboard`);
+  // Cookie points at an org the user has no membership for (revoked,
+  // deleted, or tampered). Don't bounce to onboarding if the user has OTHER
+  // valid memberships — fall back to the shared resolver instead. The
+  // stale cookie is left as-is (Server Components cannot write cookies in
+  // Next 15); `OrgCookieResync` in [orgSlug]/layout.tsx re-pins it on the
+  // next render.
+  redirect(await resolveFallbackPath(session.user.id));
 }

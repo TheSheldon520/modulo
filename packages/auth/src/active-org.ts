@@ -26,7 +26,7 @@
 import { desc, eq } from "drizzle-orm";
 
 import type { DbClient } from "@modulo/db/client";
-import { memberships } from "@modulo/db/schema";
+import { memberships, organizations } from "@modulo/db/schema";
 
 /**
  * Subset of `better-call`'s `CookieOptions` we actually use. Re-declared
@@ -70,8 +70,22 @@ export function getActiveOrgCookieOptions(): ActiveOrgCookieOptions {
 }
 
 /**
- * Resolves the organization id to attach to the active-org cookie right after
- * a session is created.
+ * Resolved active-org row carried back to callers: the stable `id` (cookie
+ * payload, FK source) and the renamable `slug` (URL segment). Returning both
+ * in one call avoids forcing every consumer to do a second DB hop to map the
+ * id back to a slug — the only callers that exist today need either one or
+ * both.
+ */
+export interface ResolvedActiveOrg {
+  id: string;
+  slug: string;
+}
+
+/**
+ * Resolves the organization to attach to the active-org cookie right after
+ * a session is created, AND/OR to fall back to from any `/` resolver path
+ * that lost track of the active org (cookie missing, expired, manually
+ * cleared, or pointing at an org the user is no longer a member of).
  *
  * Strategy: pick the user's most recently-joined membership. Rationale:
  *   - Single-org users (the vast majority post-onboarding) trivially get
@@ -83,19 +97,28 @@ export function getActiveOrgCookieOptions(): ActiveOrgCookieOptions {
  *     only ever disagree when the cookie is missing AND the user has 2+
  *     memberships — a window we close here by writing the cookie on login.
  *
- * Returns `null` when the user has zero memberships. The middleware then
- * bounces them to `/onboarding`, which is the correct behaviour.
+ * Invariant: this is the SINGLE source of truth for the fallback. Every
+ * caller (BA `session.create` hook, `/` Server Component resolver, anything
+ * else) must go through this function — never re-implement the heuristic
+ * inline, the two paths could silently diverge.
+ *
+ * Returns `null` when the user has zero memberships. Callers should bounce
+ * to `/onboarding/create-org` in that case.
  */
 export async function resolveActiveOrgForUser(
   db: DbClient,
   userId: string,
-): Promise<string | null> {
+): Promise<ResolvedActiveOrg | null> {
   const rows = await db
-    .select({ organizationId: memberships.organizationId })
+    .select({
+      id: organizations.id,
+      slug: organizations.slug,
+    })
     .from(memberships)
+    .innerJoin(organizations, eq(memberships.organizationId, organizations.id))
     .where(eq(memberships.userId, userId))
     .orderBy(desc(memberships.createdAt))
     .limit(1);
 
-  return rows[0]?.organizationId ?? null;
+  return rows[0] ?? null;
 }

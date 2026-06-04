@@ -50,7 +50,7 @@ export default function LoginPage() {
     const { error: authError } = await authClient.signIn.email({
       email: parsed.data.email,
       password: parsed.data.password,
-      callbackURL: "/dashboard",
+      callbackURL: "/",
     });
     setLoading(false);
 
@@ -61,7 +61,7 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/dashboard");
+    router.push("/");
   }
 
   async function handleOAuth(provider: "github" | "google") {
@@ -69,7 +69,7 @@ export default function LoginPage() {
     setLoading(true);
     const { error: authError } = await authClient.signIn.social({
       provider,
-      callbackURL: "/dashboard",
+      callbackURL: "/",
     });
     if (authError) {
       setLoading(false);

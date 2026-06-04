@@ -95,17 +95,17 @@ function createAuth(): AuthInstance {
             // the cookie on the user's next request anyway.
             if (!ctx) return;
             try {
-              const orgId = await resolveActiveOrgForUser(
+              const activeOrg = await resolveActiveOrgForUser(
                 getDb(),
                 session.userId,
               );
               // Zero-membership user: leave the cookie unset and let the
               // middleware bounce them to `/onboarding`. Posting a stale
               // org id would be worse than no cookie at all.
-              if (!orgId) return;
+              if (!activeOrg) return;
               ctx.setCookie(
                 ACTIVE_ORG_COOKIE_NAME,
-                orgId,
+                activeOrg.id,
                 getActiveOrgCookieOptions(),
               );
             } catch (err) {
