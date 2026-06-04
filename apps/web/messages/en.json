@@ -42,6 +42,18 @@
         "signUpFailed": "Sign up failed",
         "oauthFailed": "OAuth sign in failed"
       }
+    },
+    "errors": {
+      "ba": {
+        "invalidCreds": "Incorrect email or password.",
+        "invalidEmail": "Invalid email address.",
+        "emailTaken": "This email address is already in use.",
+        "passwordTooShort": "Password is too short.",
+        "passwordTooLong": "Password is too long.",
+        "failedToCreate": "Account creation failed. Please try again.",
+        "providerError": "Unable to sign in with this provider.",
+        "generic": "An error occurred. Please try again."
+      }
     }
   },
   "onboarding": {

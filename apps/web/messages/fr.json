@@ -42,6 +42,18 @@
         "signUpFailed": "Échec de la création du compte",
         "oauthFailed": "Échec de la connexion OAuth"
       }
+    },
+    "errors": {
+      "ba": {
+        "invalidCreds": "Email ou mot de passe incorrect.",
+        "invalidEmail": "Adresse email invalide.",
+        "emailTaken": "Cette adresse email est déjà utilisée.",
+        "passwordTooShort": "Le mot de passe est trop court.",
+        "passwordTooLong": "Le mot de passe est trop long.",
+        "failedToCreate": "La création du compte a échoué. Veuillez réessayer.",
+        "providerError": "Connexion impossible avec ce service.",
+        "generic": "Une erreur est survenue. Veuillez réessayer."
+      }
     }
   },
   "onboarding": {

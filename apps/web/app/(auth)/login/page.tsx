@@ -9,7 +9,6 @@
 // from next-intl.
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
 
@@ -20,11 +19,15 @@ import { Input } from "@modulo/ui/components/input";
 import { SubmitButton } from "@modulo/ui/components/submit-button";
 
 import { makeLoginSchema } from "@/lib/auth-schemas";
+import {
+  mapAuthErrorMessage,
+  type AuthErrorMessages,
+} from "@/lib/auth-error-messages";
 import { GithubLogo, GoogleLogo } from "../brand-logos";
 
 export default function LoginPage() {
   const t = useTranslations("auth.login");
-  const router = useRouter();
+  const tBaErrors = useTranslations("auth.errors.ba");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +39,20 @@ export default function LoginPage() {
     invalidEmail: t("errors.invalidEmail"),
     passwordRequired: t("errors.passwordRequired"),
   });
+
+  // Localized BA error messages bag, resolved once per render so the mapper
+  // stays a pure (non-i18n-dependent) function. Mirrors the factory pattern
+  // used by makeLoginSchema above.
+  const baErrorMessages: AuthErrorMessages = {
+    invalidCreds: tBaErrors("invalidCreds"),
+    invalidEmail: tBaErrors("invalidEmail"),
+    emailTaken: tBaErrors("emailTaken"),
+    passwordTooShort: tBaErrors("passwordTooShort"),
+    passwordTooLong: tBaErrors("passwordTooLong"),
+    failedToCreate: tBaErrors("failedToCreate"),
+    providerError: tBaErrors("providerError"),
+    generic: tBaErrors("generic"),
+  };
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -53,16 +70,20 @@ export default function LoginPage() {
       password: parsed.data.password,
       callbackURL: "/",
     });
-    setLoading(false);
 
     if (authError) {
-      // Better Auth error messages are still upstream English (mapping to
-      // localized strings is tracked for T1.X).
-      setError(authError.message ?? t("errors.signInFailed"));
+      setLoading(false);
+      // Map BA error code → localized FR/EN message. Never surface
+      // authError.message (upstream EN). Unknown codes → generic fallback.
+      setError(mapAuthErrorMessage(authError, baErrorMessages));
       return;
     }
 
-    router.push("/");
+    // No router.push here: BA's `redirectPlugin` (fetch-plugins.mjs) already
+    // navigates to `callbackURL` via `window.location.href` when the response
+    // carries `data.redirect === true`. A second `router.push("/")` would
+    // race with that navigation. Loading stays true so the SubmitButton
+    // remains disabled until the full reload tears the page down.
   }
 
   async function handleOAuth(provider: "github" | "google") {
@@ -74,7 +95,7 @@ export default function LoginPage() {
     });
     if (authError) {
       setLoading(false);
-      setError(authError.message ?? t("errors.oauthFailed"));
+      setError(mapAuthErrorMessage(authError, baErrorMessages));
     }
   }
 
@@ -120,7 +141,14 @@ export default function LoginPage() {
             <div className="h-px flex-1 border-t border-border-subtle" />
           </div>
 
-          <form onSubmit={(e) => void handleSubmit(e)} className="flex flex-col gap-4">
+          {/* noValidate : disable the browser's native validation popups
+              ("Veuillez renseigner ce champ") so our branded FR Zod messages
+              own the empty-field UX consistently across browsers. */}
+          <form
+            onSubmit={(e) => void handleSubmit(e)}
+            noValidate
+            className="flex flex-col gap-4"
+          >
             <div className="flex flex-col gap-2">
               <label htmlFor="email" className="text-sm text-text-secondary">
                 {t("emailLabel")}

@@ -20,10 +20,15 @@ import { Input } from "@modulo/ui/components/input";
 import { SubmitButton } from "@modulo/ui/components/submit-button";
 
 import { makeSignupSchema } from "@/lib/auth-schemas";
+import {
+  mapAuthErrorMessage,
+  type AuthErrorMessages,
+} from "@/lib/auth-error-messages";
 import { GithubLogo, GoogleLogo } from "../brand-logos";
 
 export default function SignupPage() {
   const t = useTranslations("auth.signup");
+  const tBaErrors = useTranslations("auth.errors.ba");
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -39,6 +44,20 @@ export default function SignupPage() {
     passwordTooShort: t("errors.passwordTooShort"),
   });
 
+  // Localized BA error messages bag, resolved once per render so the mapper
+  // stays a pure (non-i18n-dependent) function. Mirrors the factory pattern
+  // used by makeSignupSchema above.
+  const baErrorMessages: AuthErrorMessages = {
+    invalidCreds: tBaErrors("invalidCreds"),
+    invalidEmail: tBaErrors("invalidEmail"),
+    emailTaken: tBaErrors("emailTaken"),
+    passwordTooShort: tBaErrors("passwordTooShort"),
+    passwordTooLong: tBaErrors("passwordTooLong"),
+    failedToCreate: tBaErrors("failedToCreate"),
+    providerError: tBaErrors("providerError"),
+    generic: tBaErrors("generic"),
+  };
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
@@ -50,25 +69,38 @@ export default function SignupPage() {
     }
 
     setLoading(true);
-    // `callbackURL` targets the onboarding step because a freshly created
-    // user has no organization yet; the middleware would bounce `/dashboard`
-    // back to `/onboarding/create-org` anyway.
+    // Note on `callbackURL`: unlike `signIn.email`, BA's `signUp.email`
+    // (sign-up.mjs:215 — returns `ctx.json({token, user})`) does NOT set
+    // `data.redirect`/`data.url` on the response, so the client-side
+    // `redirectPlugin` never fires after sign-up. We must navigate manually
+    // below. The `callbackURL` kept here only feeds the verify-email URL
+    // (sign-up.mjs:197) for the day email verification is enabled.
     const { error: authError } = await authClient.signUp.email({
       name: parsed.data.name,
       email: parsed.data.email,
       password: parsed.data.password,
       callbackURL: "/onboarding/create-org",
     });
-    setLoading(false);
 
     if (authError) {
-      // Better Auth error messages are still upstream English (mapping to
-      // localized strings is tracked for T1.X).
-      setError(authError.message ?? t("errors.signUpFailed"));
+      setLoading(false);
+      // Map BA error code → localized FR/EN message. Never surface
+      // authError.message (upstream EN). Unknown codes → generic fallback.
+      setError(mapAuthErrorMessage(authError, baErrorMessages));
       return;
     }
 
-    router.push("/onboarding/create-org");
+    // BA created the user + session (autoSignIn:true) but didn't navigate.
+    // Push to `/` — the same canonical resolver login uses. With zero
+    // memberships for a brand-new user, the resolver bounces to
+    // `/onboarding/create-org` via its DB fallback (apps/web/app/page.tsx).
+    // We never hardcode `/onboarding/create-org` here so a future flow
+    // change (e.g. invite-then-signup) doesn't need to touch this file.
+    //
+    // `loading` stays true through `router.push` so the SubmitButton remains
+    // disabled — same anti-double-submit invariant as login. Cleared by the
+    // unmount when the resolver redirects.
+    router.push("/");
   }
 
   async function handleOAuth(provider: "github" | "google") {
@@ -80,7 +112,7 @@ export default function SignupPage() {
     });
     if (authError) {
       setLoading(false);
-      setError(authError.message ?? t("errors.oauthFailed"));
+      setError(mapAuthErrorMessage(authError, baErrorMessages));
     }
   }
 
@@ -126,7 +158,14 @@ export default function SignupPage() {
             <div className="h-px flex-1 border-t border-border-subtle" />
           </div>
 
-          <form onSubmit={(e) => void handleSubmit(e)} className="flex flex-col gap-4">
+          {/* noValidate : disable the browser's native validation popups
+              ("Veuillez renseigner ce champ") so our branded FR Zod messages
+              own the empty-field UX consistently across browsers. */}
+          <form
+            onSubmit={(e) => void handleSubmit(e)}
+            noValidate
+            className="flex flex-col gap-4"
+          >
             <div className="flex flex-col gap-2">
               <label htmlFor="name" className="text-sm text-text-secondary">
                 {t("nameLabel")}
