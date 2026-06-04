@@ -17,6 +17,7 @@ import { authClient } from "@modulo/auth/client";
 import { Button } from "@modulo/ui/components/button";
 import { Card } from "@modulo/ui/components/card";
 import { Input } from "@modulo/ui/components/input";
+import { SubmitButton } from "@modulo/ui/components/submit-button";
 
 import { makeSignupSchema } from "@/lib/auth-schemas";
 import { GithubLogo, GoogleLogo } from "../brand-logos";
@@ -177,9 +178,18 @@ export default function SignupPage() {
 
             {error ? <p className="text-sm text-danger">{error}</p> : null}
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? t("submitLoading") : t("submit")}
-            </Button>
+            {/* Convention Modulo CLAUDE.md §5 — tout submit lié à une
+                mutation (ici Better Auth signUp) passe par SubmitButton.
+                isLoading branché sur le state `loading` existant : disable
+                + spinner + swap du label vers `submitLoading`. */}
+            <SubmitButton
+              type="submit"
+              className="w-full"
+              isLoading={loading}
+              loadingLabel={t("submitLoading")}
+            >
+              {t("submit")}
+            </SubmitButton>
           </form>
         </Card>
 
